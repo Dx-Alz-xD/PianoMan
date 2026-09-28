@@ -1,0 +1,115 @@
+{
+  "name": "pianoman",
+  "productName": "PianoMan",
+  "version": "1.0.0",
+  "description": "Desktop piano with internet-streamed sampled instruments, a full sound-design panel, a score autoplayer, sheet music viewer and clicker mode.",
+  "main": "electron/main.cjs",
+  "author": {
+    "name": "PianoMan contributors"
+  },
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "start": "vite build && electron .",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm test && npm run build",
+    "dist": "vite build && electron-builder",
+    "dist:win": "vite build && electron-builder --win",
+    "dist:mac": "vite build && electron-builder --mac",
+    "dist:linux": "vite build && electron-builder --linux",
+    "instruments": "python3 scripts/build-instruments.py"
+  },
+  "devDependencies": {
+    "@tonejs/midi": "^2.0.28",
+    "@types/node": "^26.6.3",
+    "abcjs": "^6.7.1",
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3",
+    "fflate": "^0.8.3",
+    "jsdom": "^30.1.1",
+    "opensheetmusicdisplay": "^2.1.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2"
+  },
+  "homepage": "https://github.com/Dx-Alz-xD/PianoMan",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Dx-Alz-xD/PianoMan.git"
+  },
+  "build": {
+    "appId": "com.pianoman.app",
+    "productName": "PianoMan",
+    "copyright": "PianoMan contributors",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "fileAssociations": [
+      {
+        "ext": [
+          "mid",
+          "midi",
+          "kar"
+        ],
+        "name": "MIDI file",
+        "role": "Viewer"
+      },
+      {
+        "ext": [
+          "musicxml",
+          "mxl"
+        ],
+        "name": "MusicXML score",
+        "role": "Viewer"
+      },
+      {
+        "ext": "abc",
+        "name": "ABC tune",
+        "role": "Viewer"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.music",
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Audio",
+      "icon": "build/icon.png",
+      "maintainer": "PianoMan contributors",
+      "synopsis": "Desktop piano with autoplayer, sheet music and clicker mode"
+    }
+  }
+}

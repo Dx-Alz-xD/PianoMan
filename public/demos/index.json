@@ -1,0 +1,37 @@
+[
+  {
+    "file": "twinkle.musicxml",
+    "title": "Twinkle, Twinkle, Little Star",
+    "composer": "Traditional",
+    "level": "Beginner",
+    "description": "The first tune everyone learns – perfect for clicker mode."
+  },
+  {
+    "file": "ode-to-joy.musicxml",
+    "title": "Ode to Joy",
+    "composer": "Ludwig van Beethoven",
+    "level": "Beginner",
+    "description": "The theme from the finale of the Ninth Symphony."
+  },
+  {
+    "file": "minuet-in-g.musicxml",
+    "title": "Minuet in G major",
+    "composer": "Christian Petzold",
+    "level": "Easy",
+    "description": "From the Notebook for Anna Magdalena Bach (1725)."
+  },
+  {
+    "file": "fur-elise.musicxml",
+    "title": "Für Elise (opening)",
+    "composer": "Ludwig van Beethoven",
+    "level": "Intermediate",
+    "description": "The famous A-minor theme, with pedalling."
+  },
+  {
+    "file": "prelude-in-c.musicxml",
+    "title": "Prelude in C major, BWV 846 (bars 1–12)",
+    "composer": "Johann Sebastian Bach",
+    "level": "Intermediate",
+    "description": "Opening of the Well-Tempered Clavier – flowing broken chords."
+  }
+]
