@@ -5,7 +5,7 @@
 import { Emitter } from '../core/emitter';
 import type { Metronome } from '../audio/metronome';
 import type { PianoEngine } from '../audio/engine';
-import { TempoMap, type Hand, type Score } from '../score/model';
+import { TempoMap, type Hand, type Score, type ScoreNote } from '../score/model';
 
 interface TimedEvent {
   time: number;
@@ -22,6 +22,8 @@ export interface AutoPlayerEvents {
   state: { state: PlayerState; position: number };
   end: undefined;
   wait: { required: number[] };
+  /** Flow mode: the playhead passed a tap point. */
+  gate: { index: number; total: number };
 }
 
 const LOOKAHEAD = 0.15;
@@ -39,6 +41,8 @@ export class AutoPlayer extends Emitter<AutoPlayerEvents> {
   countIn = false;
   metronomeOn = false;
   waitMode = false;
+  /** Only notes for which this returns true are played (the 4K game plays the rest on hits). */
+  noteFilter: ((n: ScoreNote) => boolean) | null = null;
 
   private events: TimedEvent[] = [];
   private idx = 0;
@@ -54,6 +58,9 @@ export class AutoPlayer extends Emitter<AutoPlayerEvents> {
   private waitIdx = 0;
   private pressed = new Set<number>();
   private waitingFor: Set<number> | null = null;
+  /** Flow mode: taps unlock the timeline chord by chord; playback keeps the written timing. */
+  private gate: { times: number[]; idx: number; credits: number; max: number } | null = null;
+  private gateWaiting = false;
 
   constructor(private engine: PianoEngine, private metronome: Metronome) {
     super();
@@ -82,6 +89,7 @@ export class AutoPlayer extends Emitter<AutoPlayerEvents> {
     const ev: TimedEvent[] = [];
     for (const n of s.notes) {
       if (!this.hands[n.hand]) continue;
+      if (this.noteFilter && !this.noteFilter(n)) continue;
       const jitter = this.humanize ? (Math.random() - 0.5) * 0.03 * this.humanize : 0;
       const vel = Math.max(1, Math.min(127, Math.round(n.velocity * 127 * this.velocityScale * (1 + (this.humanize ? (Math.random() - 0.5) * 0.2 * this.humanize : 0)))));
       const t = Math.max(0, n.time + jitter);
@@ -138,6 +146,77 @@ export class AutoPlayer extends Emitter<AutoPlayerEvents> {
     return this.tempo;
   }
 
+  /** Unclamped song time as heard (negative during a lead-in); for the rhythm game clock. */
+  songTime(ctxNow = this.ctx.currentTime, compensate = true): number {
+    if (this.state !== 'playing' && this.state !== 'counting') return this.pausedAt;
+    const lat = compensate ? ((this.ctx as AudioContext & { outputLatency?: number }).outputLatency || 0) + (this.ctx.baseLatency || 0) : 0;
+    return this.startPos + (ctxNow - lat - this.startCtx) * this.speed;
+  }
+
+  /** The audio-context time at which score time `pos` is scheduled. */
+  ctxTimeFor(pos: number): number {
+    return this.ctxTimeOf(pos);
+  }
+
+  /** Starts playback of `pos` at a precise (possibly future) audio time. */
+  startFrom(pos: number, ctxTime: number) {
+    if (!this.score) return;
+    this.halt();
+    void this.engine.resume();
+    this.state = ctxTime > this.ctx.currentTime + 0.05 ? 'counting' : 'playing';
+    this.startPos = Math.max(0, pos);
+    this.emitState();
+    this.startAt(this.startPos, ctxTime);
+  }
+
+  // ------------------------------------------------------------ flow gate ----
+
+  /** Enables flow mode with a tap point at each of `times`; `max` taps can be banked ahead. */
+  setGate(times: number[] | null, max = 2) {
+    this.gate = times ? { times, idx: 0, credits: 0, max } : null;
+    this.gateWaiting = false;
+    if (this.gate) this.gate.idx = this.gateIndexAt(this.position);
+  }
+
+  get gateProgress() {
+    return this.gate ? { index: this.gate.idx, total: this.gate.times.length } : null;
+  }
+
+  private gateIndexAt(pos: number) {
+    if (!this.gate) return 0;
+    const i = this.gate.times.findIndex((t) => t >= pos - 0.001);
+    return i < 0 ? this.gate.times.length : i;
+  }
+
+  /** A tap in flow mode: lets the music continue to the next chord. */
+  gateTap() {
+    const g = this.gate;
+    if (!g) return;
+    if (!this.isPlaying) {
+      g.credits = 1;
+      this.play();
+      return;
+    }
+    if (this.gateWaiting) {
+      this.gateWaiting = false;
+      g.credits = 0;
+      this.passGate();
+      this.startPos = this.pausedAt;
+      this.startCtx = this.ctx.currentTime + 0.005;
+      this.state = 'playing';
+      this.emitState();
+      this.tick();
+      return;
+    }
+    g.credits = Math.min(g.max, g.credits + 1);
+  }
+
+  private passGate() {
+    const g = this.gate!;
+    g.idx++;
+    this.emit('gate', { index: g.idx, total: g.times.length });
+  }
+
   play() {
     if (!this.score || this.isPlaying) return;
     void this.engine.resume();
@@ -166,6 +245,8 @@ export class AutoPlayer extends Emitter<AutoPlayerEvents> {
     this.idx = this.lowerBound(pos);
     this.waitIdx = this.waitPoints.findIndex((w) => w.time >= pos - 0.001);
     if (this.waitIdx < 0) this.waitIdx = this.waitPoints.length;
+    if (this.gate) this.gate.idx = this.gateIndexAt(pos);
+    this.gateWaiting = false;
     this.nextClickBeat = Math.ceil(this.tempo.timeToBeat(pos) - 1e-6);
     this.applyPedalStateAt(pos, ctxTime);
     clearInterval(this.timer);
@@ -267,6 +348,7 @@ export class AutoPlayer extends Emitter<AutoPlayerEvents> {
     this.timer = 0;
     this.releaseAll();
     this.waitingFor = null;
+    this.gateWaiting = false;
   }
 
   private releaseAll() {
@@ -317,6 +399,27 @@ export class AutoPlayer extends Emitter<AutoPlayerEvents> {
     const s = this.score;
     if (!s) return;
     let horizonPos = this.startPos + (horizonCtx - this.startCtx) * this.speed;
+
+    // Flow mode: the timeline only runs past a tap point once a tap has been banked.
+    const g = this.gate;
+    while (g && g.idx < g.times.length && horizonPos >= g.times[g.idx]) {
+      if (g.credits > 0) {
+        g.credits--;
+        this.passGate();
+        continue;
+      }
+      const t = g.times[g.idx];
+      horizonPos = t;
+      if (this.state === 'playing' && this.position >= t - 0.005) {
+        this.flush(t - 1e-6);
+        this.pausedAt = t;
+        this.state = 'waiting';
+        this.gateWaiting = true;
+        this.emitState();
+        return;
+      }
+      break;
+    }
 
     // Practice mode: hold the timeline at the next chord the user must play.
     const wp = this.waitMode ? this.waitPoints[this.waitIdx] : undefined;

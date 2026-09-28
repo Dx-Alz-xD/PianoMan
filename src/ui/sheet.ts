@@ -43,6 +43,7 @@ export class SheetView {
     this.el = h('div', { class: 'sheet' }, this.toolbar, this.scroller, this.status);
     this.paper.addEventListener('click', (e) => this.onClick(e));
     this.showMessage('Open a score to see its sheet music.');
+    if (typeof ResizeObserver !== 'undefined') this.watchWidth();
   }
 
   private showMessage(text: string, busy = false) {
@@ -75,7 +76,7 @@ export class SheetView {
       await new Promise((r) => setTimeout(r, 30));
       if (this.loadedKey !== key) return;
       const osmd = new OpenSheetMusicDisplay(this.paper, {
-        autoResize: true,
+        autoResize: false,
         backend: 'svg',
         drawTitle: true,
         drawComposer: true,
@@ -191,15 +192,33 @@ export class SheetView {
   setZoom(z: number) {
     this.zoom = Math.min(2.5, Math.max(0.4, Math.round(z * 10) / 10));
     this.zoomLabel.textContent = `${Math.round(this.zoom * 100)}%`;
-    if (this.osmd) {
-      const keep = this.cur;
-      this.osmd.Zoom = this.zoom;
-      this.osmd.render();
-      this.osmd.cursor.show();
-      this.osmd.cursor.reset();
-      this.cur = 0;
-      this.moveTo(keep);
-    }
+    this.rerender();
+  }
+
+  private rerender() {
+    if (!this.osmd || this.loading) return;
+    const keep = this.cur;
+    this.osmd.Zoom = this.zoom;
+    this.osmd.render();
+    this.osmd.cursor.show();
+    this.osmd.cursor.reset();
+    this.cur = 0;
+    this.moveTo(keep);
+  }
+
+  /** Re-flows the systems when the view gets wider or narrower (panels opening, keyboard folding). */
+  private watchWidth() {
+    let width = 0;
+    let timer = 0;
+    new ResizeObserver(([entry]) => {
+      const w = Math.round(entry.contentRect.width);
+      if (w < 50 || Math.abs(w - width) < 8) return;
+      const first = width === 0;
+      width = w;
+      if (first) return;
+      clearTimeout(timer);
+      timer = window.setTimeout(() => this.rerender(), 180);
+    }).observe(this.scroller);
   }
 
   private onClick(e: MouseEvent) {

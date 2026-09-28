@@ -60,17 +60,16 @@ export class LibraryPanel {
     this.filterInput = h('input', { type: 'search', class: 'text-input', placeholder: 'Filter your library…', oninput: () => this.renderLibrary() }) as HTMLInputElement;
     this.libraryList = h('div', { class: 'list' });
     this.demos = h('div', { class: 'list demo-list' });
+    const fold = (title: string, ...content: HTMLElement[]) =>
+      h('details', { class: 'fold', open: true }, h('summary', null, h('span', null, title), icon('chevron', 15)), ...content);
     this.libraryView = h('div', { class: 'tab-view' },
       h('div', { class: 'btn-row' },
         h('button', { class: 'btn primary', onclick: () => handlers.openFile() }, icon('folder', 16), 'Open file…'),
         h('button', { class: 'btn', onclick: () => handlers.openUrl() }, icon('link', 16), 'From URL…'),
       ),
-      h('p', { class: 'hint' }, 'MusicXML (.musicxml, .xml, .mxl), MIDI (.mid, .midi, .kar) and ABC (.abc). You can also drop files anywhere on the window.'),
-      h('h3', { class: 'list-title' }, 'Demos'),
-      this.demos,
-      h('h3', { class: 'list-title' }, 'Your library'),
-      this.filterInput,
-      this.libraryList,
+      h('p', { class: 'hint' }, 'MusicXML, MXL, MIDI and ABC. You can also drop files anywhere on the window.'),
+      fold('Demos', this.demos),
+      fold('Your library', this.filterInput, this.libraryList),
     );
 
     // Search.

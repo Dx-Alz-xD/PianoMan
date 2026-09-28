@@ -1,6 +1,7 @@
 // PianoMan application: wires inputs, the sound engine, the players and the UI.
 
 import { PianoEngine } from './audio/engine';
+import { GameView } from './game/gameView';
 import { getInstrument, INSTRUMENTS } from './audio/instruments';
 import { Metronome } from './audio/metronome';
 import { FACTORY_PRESETS, getFactoryPreset, presetSound } from './audio/presets';
@@ -76,6 +77,13 @@ export class App {
   private metroBtn!: HTMLButtonElement;
   private meterFill!: HTMLElement;
   private status: Record<string, HTMLElement> = {};
+  private game!: GameView;
+  private railBtns: Record<string, HTMLButtonElement> = {};
+  private kbdWrap!: HTMLElement;
+  private kbdToggle!: HTMLButtonElement;
+  private focusBtn!: HTMLButtonElement;
+  private splashDone = false;
+  private splashStart = performance.now();
   private pedalEls: Record<'sustain' | 'sostenuto' | 'soft', HTMLElement> = {} as never;
 
   // input state
@@ -136,6 +144,7 @@ export class App {
         tabChanged: (tab) => {
           this.app.panels.libraryTab = tab;
           this.saveApp();
+          this.applyPanels();
         },
       },
       this.app.panels.libraryTab,
@@ -162,10 +171,16 @@ export class App {
           (this.app.clicker as Record<string, unknown>)[key] = value;
           this.clicker.setOptions({ [key]: value });
           this.saveApp();
+          if (this.app.mode === 'clicker' && (key === 'style' || key === 'target')) this.setMode('clicker', false);
         },
-        clickerReset: () => this.clicker.reset(),
-        clickerBack: () => this.clicker.back(),
-        clickerTap: () => this.clicker.tap('button', 96),
+        clickerReset: () => this.clickerReset(),
+        clickerBack: () => this.clickerBack(),
+        clickerTap: () => this.tap('button', 96),
+        drawer: (open) => {
+          this.app.panels.drawer = open;
+          this.saveApp();
+          this.refreshGeometrySoon();
+        },
       },
       this.app,
     );
@@ -178,7 +193,10 @@ export class App {
     this.wirePlatform();
 
     this.engine.setSettings({ ...this.sound, instrument: this.engine.instrument.id });
+    this.splash(`Loading ${getInstrument(this.sound.instrument).name}…`, 0.15);
     void this.engine.loadInstrument(this.sound.instrument, this.app.sampleQuality);
+    // Never keep the loading screen up for long (e.g. offline): the synth fallback plays meanwhile.
+    window.setTimeout(() => this.hideSplash(), 9000);
     this.soundPanel.sync(this.sound);
     this.refreshPresetList();
     void this.midi.init().then(() => this.renderMidiStatus());
@@ -197,7 +215,8 @@ export class App {
       options: [
         { value: 'play', label: 'Free play', icon: icon('piano', 16), title: 'Play the piano yourself' },
         { value: 'autoplay', label: 'Autoplay', icon: icon('play', 16), title: 'The piano plays the score for you' },
-        { value: 'clicker', label: 'Clicker', icon: icon('pointer', 16), title: 'Every key press or click plays the next chord of the score' },
+        { value: 'clicker', label: 'Clicker', icon: icon('pointer', 16), title: 'Every key press or click moves the score on' },
+        { value: 'game', label: '4K', icon: icon('keyboard', 16), title: '4-key rhythm game made from any score' },
       ],
       onChange: (m) => this.setMode(m),
       cls: 'mode-tabs',
@@ -218,8 +237,8 @@ export class App {
     this.metroBtn = h('button', { class: 'tool-btn', title: 'Metronome', onclick: () => this.toggleMetronome() }, icon('metronome', 17));
     const metroMenu = h('button', { class: 'tool-btn caret', title: 'Metronome settings', onclick: (e: MouseEvent) => this.metronomePopover(e.currentTarget as HTMLElement) }, icon('chevron', 14));
     this.meterFill = h('div', { class: 'meter-fill' });
+    this.focusBtn = h('button', { class: 'tool-btn', title: 'Focus: collapse everything except the music (Ctrl+.)', onclick: () => this.toggleFocus() }, icon('eye', 17));
     const header = h('header', { class: 'topbar' },
-      h('button', { class: 'tool-btn', title: 'Library & search', onclick: () => this.togglePanel('library') }, icon('library')),
       h('div', { class: 'brand' }, h('span', { class: 'brand-mark' }, icon('piano', 20)), h('span', { class: 'brand-name' }, 'Piano', h('b', null, 'Man'))),
       this.modeTabs.el,
       this.titleEl,
@@ -227,17 +246,37 @@ export class App {
       this.viewTabs.el,
       h('div', { class: 'tool-group' }, this.recordBtn, h('span', { class: 'metro-wrap' }, this.metroBtn, metroMenu)),
       h('div', { class: 'meter', title: 'Output level' }, this.meterFill),
+      this.focusBtn,
       h('button', { class: 'tool-btn', title: 'Keyboard shortcuts & help (F1)', onclick: () => this.showHelp() }, icon('help')),
-      h('button', { class: 'tool-btn', title: 'Sound settings (Ctrl+,)', onclick: () => this.togglePanel('settings') }, icon('sliders')),
     );
 
-    this.viewport = h('div', { class: 'viewport' }, this.sheet.el, this.falling.el);
+    // Side rails: always-visible icons that open and close the panels.
+    const railBtn = (id: string, iconName: string, title: string, onclick: () => void) => {
+      const b = h('button', { class: 'rail-btn', title, 'aria-label': title, onclick }, icon(iconName, 19));
+      this.railBtns[id] = b;
+      return b;
+    };
+    const leftRail = h('nav', { class: 'rail rail-left' },
+      railBtn('library', 'library', 'Library & demos (Ctrl+B)', () => this.railPanel('library')),
+      railBtn('search', 'search', 'Search scores (Ctrl+F)', () => this.railPanel('search')),
+      railBtn('info', 'info', 'Score details', () => this.railPanel('info')),
+    );
+    const rightRail = h('nav', { class: 'rail rail-right' },
+      railBtn('settings', 'sliders', 'Sound settings (Ctrl+,)', () => this.togglePanel('settings')),
+    );
+
+    this.game = new GameView(this.engine, this.player, this.app.game, {
+      optionsChanged: () => this.saveApp(),
+      openLibrary: () => this.showPanel('library', 'library'),
+      openSearch: () => this.showPanel('library', 'search'),
+    });
+    this.viewport = h('div', { class: 'viewport' }, this.sheet.el, this.falling.el, this.game.el);
     this.falling.el.addEventListener('pointerdown', (e) => {
       if (this.app.mode !== 'clicker') return;
       e.preventDefault();
       const r = this.falling.el.getBoundingClientRect();
       const vel = Math.round(50 + ((e.clientY - r.top) / r.height) * 77);
-      this.clicker.tap(`pointer:${e.pointerId}`, vel);
+      this.tap(`pointer:${e.pointerId}`, vel);
     });
     const releasePointer = (e: PointerEvent) => this.app.mode === 'clicker' && this.clicker.release(`pointer:${e.pointerId}`);
     this.falling.el.addEventListener('pointerup', releasePointer);
@@ -257,24 +296,82 @@ export class App {
       this.pedalEls[kind] = el;
       return el;
     };
+    this.kbdToggle = h('button', { class: 'kbd-toggle', title: 'Collapse / expand the keyboard (Ctrl+K)', onclick: () => this.toggleKeyboard() }, icon('chevron', 15), h('span', null, 'Keyboard'));
     const pedalBar = h('div', { class: 'pedal-bar' },
       pedal('soft', 'Una corda', 'Soft pedal – click to latch'),
       pedal('sostenuto', 'Sostenuto', 'Sostenuto pedal – click to latch'),
       pedal('sustain', 'Sustain', 'Damper pedal – hold Space (free play) or Shift, or click to latch'),
       h('span', { class: 'kbd-info' }),
+      this.kbdToggle,
     );
     this.status.kbd = pedalBar.querySelector('.kbd-info')!;
+    this.kbdWrap = h('div', { class: 'keyboard-wrap' }, pedalBar, this.keyboard.el);
 
-    const stage = h('main', { class: 'stage' }, this.viewport, this.transport.el, pedalBar, this.keyboard.el);
-    const status = h('footer', { class: 'statusbar' });
+    const stage = h('main', { class: 'stage' }, this.viewport, this.kbdWrap);
+
+    // Bottom bar: player controls on the left, status on the right.
+    const status = h('div', { class: 'status-chips' });
     for (const key of ['midi', 'instrument', 'voices', 'latency', 'rec']) {
       this.status[key] = h('span', { class: `status-item status-${key}` });
       status.append(this.status[key]);
     }
-    this.root.append(header, h('div', { class: 'body' }, this.libraryPanel.el, stage, this.soundPanel.el), status);
+    const bottom = h('footer', { class: 'bottom' }, this.transport.drawer, h('div', { class: 'bottombar' }, this.transport.bar, h('div', { class: 'spacer' }), status));
+
+    this.root.append(header, h('div', { class: 'body' }, leftRail, this.libraryPanel.el, stage, this.soundPanel.el, rightRail), bottom);
     this.buildExtraSettings();
 
     this.keyboard.onResize = () => this.falling.setGeometry(this.keyboard.geometry());
+    this.applyPanels();
+  }
+
+  /** Reflects open/closed panels, keyboard and focus state in the DOM. */
+  private applyPanels() {
+    const p = this.app.panels;
+    this.root.classList.toggle('hide-library', !p.library);
+    this.root.classList.toggle('hide-settings', !p.settings);
+    this.root.classList.toggle('kbd-collapsed', !p.keyboard);
+    this.root.classList.toggle('focus', p.focus);
+    this.focusBtn?.classList.toggle('on', p.focus);
+    for (const id of ['library', 'search', 'info']) this.railBtns[id]?.classList.toggle('active', p.library && p.libraryTab === id);
+    this.railBtns.settings?.classList.toggle('active', p.settings);
+    this.refreshGeometrySoon();
+  }
+
+  private refreshGeometrySoon() {
+    for (const ms of [30, 280]) window.setTimeout(() => this.falling.setGeometry(this.keyboard.geometry()), ms);
+  }
+
+  private railPanel(tab: 'library' | 'search' | 'info') {
+    const p = this.app.panels;
+    if (p.library && p.libraryTab === tab) {
+      p.library = false;
+    } else {
+      p.library = true;
+      p.focus = false;
+      this.libraryPanel.show(tab);
+    }
+    this.saveApp();
+    this.applyPanels();
+  }
+
+  private toggleKeyboard() {
+    this.app.panels.keyboard = !this.app.panels.keyboard;
+    this.saveApp();
+    this.applyPanels();
+  }
+
+  /** Focus mode collapses the panels, drawer and keyboard chrome in one go. */
+  private toggleFocus() {
+    const p = this.app.panels;
+    p.focus = !p.focus;
+    if (p.focus) {
+      p.library = false;
+      p.settings = false;
+      p.drawer = false;
+      this.transport.setDrawer(false);
+    }
+    this.saveApp();
+    this.applyPanels();
   }
 
   /** App-level settings shown at the bottom of the sound panel. */
@@ -386,8 +483,6 @@ export class App {
     this.keyboard.setRange(a.keyboard.keyCount);
     this.updateKeyLabels();
     this.applyVisualOptions();
-    this.root.classList.toggle('hide-library', !a.panels.library);
-    this.root.classList.toggle('hide-settings', !a.panels.settings);
     this.player.speed = a.player.speed;
     this.player.hands = { L: a.player.handL, R: a.player.handR };
     this.player.applyPedal = a.player.applyPedal;
@@ -427,35 +522,70 @@ export class App {
 
   private togglePanel(which: 'library' | 'settings') {
     this.app.panels[which] = !this.app.panels[which];
-    this.root.classList.toggle(`hide-${which}`, !this.app.panels[which]);
+    if (this.app.panels[which]) this.app.panels.focus = false;
     this.saveApp();
-    window.setTimeout(() => this.falling.setGeometry(this.keyboard.geometry()), 260);
+    this.applyPanels();
   }
 
   private showPanel(which: 'library' | 'settings', tab?: 'library' | 'search' | 'info') {
+    if (tab) {
+      this.libraryPanel.show(tab);
+      this.app.panels.libraryTab = tab;
+    }
     if (!this.app.panels[which]) this.togglePanel(which);
-    if (tab) this.libraryPanel.show(tab);
+    else this.applyPanels();
   }
 
   // ============================================================ modes ====
+
+  private get flow() {
+    return this.app.mode === 'clicker' && this.app.clicker.style === 'flow';
+  }
 
   private setMode(mode: AppMode, save = true) {
     const prev = this.app.mode;
     this.app.mode = mode;
     this.modeTabs.set(mode);
-    if (prev === 'autoplay' && mode !== 'autoplay') this.player.pause();
-    if (mode !== 'clicker') this.clicker.stop();
-    if (mode === 'clicker') this.clicker.start();
+    const p = this.player;
+    p.setGate(null);
+    if (prev === 'autoplay' && mode !== 'autoplay') p.pause();
+    if (prev === 'clicker' || mode === 'clicker') p.stop();
+    this.game.setVisible(mode === 'game');
+    if (!(mode === 'clicker' && this.app.clicker.style === 'tap')) this.clicker.stop();
+    // The autoplayer's own options apply in autoplay; flow mode always plays everything as written.
+    if (mode === 'autoplay') {
+      p.hands = { L: this.app.player.handL, R: this.app.player.handR };
+      p.waitMode = this.app.player.waitMode;
+      p.loopWhole = this.app.player.loop;
+      p.speed = this.app.player.speed;
+      p.rebuild();
+    } else if (mode === 'clicker' && this.flow) {
+      p.hands = { L: true, R: true };
+      p.waitMode = false;
+      p.loopWhole = false;
+      p.loop = null;
+      p.speed = 1;
+      p.rebuild();
+      this.flowTimes = this.clicker.stepTimes();
+      p.setGate(this.flowTimes, 2);
+      this.transport.setClicker(0, this.flowTimes.length);
+    } else if (mode === 'clicker') {
+      this.clicker.start();
+      this.clicker.reset();
+    }
+    if (mode === 'game') this.game.load(this.score);
     this.keyboard.setAuto([]);
     this.keyboard.setHints([]);
-    this.falling.setScore(mode === 'play' ? null : this.score);
+    this.falling.setScore(mode === 'play' || mode === 'game' ? null : this.score);
+    this.falling.setVisible(mode !== 'game' && this.app.view !== 'sheet');
     this.falling.setEmptyHint(
       mode === 'play'
         ? 'Play with your computer keyboard (Z–M and Q–P rows), the mouse, or a MIDI keyboard.\nSpace = sustain pedal · ← → change octave'
         : 'Open a score from the library or search to start.',
     );
-    this.falling.getHighlight = mode === 'clicker' ? () => new Set(this.clicker.upcoming) : () => null;
-    this.player.metronomeOn = mode === 'autoplay' && this.app.metronome.enabled;
+    this.falling.getHighlight =
+      mode !== 'clicker' ? () => null : this.flow ? () => new Set(this.flowUpcoming()) : () => new Set(this.clicker.upcoming);
+    p.metronomeOn = mode === 'autoplay' && this.app.metronome.enabled;
     if (this.app.metronome.enabled) {
       if (mode === 'play') this.metronome.start();
       else this.metronome.stop();
@@ -463,16 +593,55 @@ export class App {
     this.transport.setMode(mode, !!this.score);
     this.root.dataset.mode = mode;
     if (save) this.saveApp();
-    if (mode !== 'play' && !this.score) {
+    if (mode !== 'play' && mode !== 'game' && !this.score) {
       this.showPanel('library', this.app.panels.libraryTab === 'info' ? 'library' : this.app.panels.libraryTab);
     }
+    this.refreshGeometrySoon();
+  }
+
+  private flowTimes: number[] = [];
+
+  /** Notes of the chord the next tap unlocks (flow mode). */
+  private flowUpcoming() {
+    const g = this.player.gateProgress;
+    const t = g ? this.flowTimes[g.index] : undefined;
+    return t === undefined ? [] : this.clicker.notesAt(t);
+  }
+
+  /** A tap in clicker mode, from any input. */
+  private tap(source: string, velocity: number) {
+    if (this.app.mode !== 'clicker' || !this.score) return;
+    if (this.app.clicker.style === 'flow') {
+      void this.engine.resume();
+      this.player.gateTap();
+    } else this.clicker.tap(source, velocity);
+  }
+
+  private clickerReset() {
+    if (this.flow) {
+      this.player.stop();
+      this.player.setGate(this.flowTimes, 2);
+      this.transport.setClicker(0, this.flowTimes.length);
+    } else this.clicker.reset();
+  }
+
+  private clickerBack() {
+    if (!this.flow) {
+      this.clicker.back();
+      return;
+    }
+    const pos = this.player.position;
+    const prev = [...this.flowTimes].reverse().find((t) => t < pos - 0.05) ?? 0;
+    this.player.pause();
+    this.player.seek(prev);
+    this.transport.setClicker(Math.max(0, this.flowTimes.indexOf(prev)), this.flowTimes.length);
   }
 
   private setView(view: ViewMode) {
     this.app.view = view;
     this.viewTabs.set(view);
     this.viewport.dataset.view = view;
-    this.falling.setVisible(view !== 'sheet');
+    this.falling.setVisible(view !== 'sheet' && this.app.mode !== 'game');
     if (view !== 'notes') void this.ensureSheet();
     this.saveApp();
     window.setTimeout(() => this.falling.setGeometry(this.keyboard.geometry()), 50);
@@ -608,6 +777,9 @@ export class App {
       else if (e.key === '2') this.setView('sheet');
       else if (e.key === '3') this.setView('split');
       else if (e.key === ',') this.togglePanel('settings');
+      else if (e.key.toLowerCase() === 'k') this.toggleKeyboard();
+      else if (e.key === '.') this.toggleFocus();
+      else if (e.key.toLowerCase() === 'b') this.railPanel(this.app.panels.libraryTab);
       else if (!isDesktop && e.key.toLowerCase() === 'o') void this.openFileDialog();
       else return;
       e.preventDefault();
@@ -618,6 +790,9 @@ export class App {
       this.showHelp();
       return;
     }
+    if (this.app.mode === 'game') {
+      if (this.game.keyDown(e)) return;
+    }
     if (e.code === 'Escape') {
       this.player.pause();
       this.engine.panic();
@@ -627,14 +802,15 @@ export class App {
     }
     const mode = this.app.mode;
 
+    if (mode === 'game') return;
     if (mode === 'clicker') {
       if (e.code === 'Backspace') {
         e.preventDefault();
-        this.clicker.back();
+        this.clickerBack();
         return;
       }
       if (e.code === 'Home') {
-        this.clicker.reset();
+        this.clickerReset();
         return;
       }
       if (IGNORED_TAP_KEYS.has(e.code) || /^F\d+$/.test(e.code)) return;
@@ -644,7 +820,7 @@ export class App {
       }
       e.preventDefault();
       this.pressedCodes.set(e.code, -1);
-      this.clicker.tap(`key:${e.code}`, this.app.keyboard.velocity);
+      this.tap(`key:${e.code}`, this.app.keyboard.velocity);
       return;
     }
 
@@ -691,6 +867,10 @@ export class App {
 
   private onKeyUp(e: KeyboardEvent) {
     const mode = this.app.mode;
+    if (mode === 'game') {
+      this.game.keyUp(e);
+      return;
+    }
     if (mode === 'clicker') {
       if (this.pressedCodes.has(e.code)) {
         this.pressedCodes.delete(e.code);
@@ -711,8 +891,12 @@ export class App {
   }
 
   private userNoteOn(midi: number, velocity: number, source: string) {
+    if (this.app.mode === 'game') {
+      this.game.midiNote(midi, true);
+      return;
+    }
     if (this.app.mode === 'clicker') {
-      this.clicker.tap(source, velocity);
+      this.tap(source, velocity);
       return;
     }
     this.engine.noteOn(midi, velocity);
@@ -723,6 +907,10 @@ export class App {
   }
 
   private userNoteOff(midi: number, source: string) {
+    if (this.app.mode === 'game') {
+      this.game.midiNote(midi, false);
+      return;
+    }
     if (this.app.mode === 'clicker') {
       this.clicker.release(source);
       return;
@@ -740,11 +928,41 @@ export class App {
     this.recorder.pedal('sustain', value);
   }
 
+  // ========================================================= loading ====
+
+  private splash(text: string, fraction: number) {
+    if (this.splashDone) return;
+    const status = document.getElementById('splash-status');
+    const fill = document.getElementById('splash-fill');
+    if (status) status.textContent = text;
+    if (fill) fill.style.width = `${Math.round(Math.max(0.04, Math.min(1, fraction)) * 100)}%`;
+  }
+
+  private hideSplash() {
+    if (this.splashDone) return;
+    this.splashDone = true;
+    const el = document.getElementById('splash');
+    if (!el) return;
+    const wait = Math.max(0, 800 - (performance.now() - this.splashStart));
+    window.setTimeout(() => {
+      const fill = document.getElementById('splash-fill');
+      if (fill) fill.style.width = '100%';
+      el.classList.add('done');
+      window.setTimeout(() => el.remove(), 600);
+    }, wait);
+  }
+
   // ========================================================== engine ====
 
   private wireEngine() {
     let firstNetwork = true;
     this.engine.on('progress', (p) => {
+      if (!this.splashDone) {
+        const name = getInstrument(p.instrument).name;
+        this.splash(p.fromNetwork ? `Downloading ${name} · ${p.loaded}/${p.total} samples` : `Loading ${name} · ${p.loaded}/${p.total}`, 0.15 + 0.85 * (p.loaded / Math.max(1, p.total)));
+        // Playable once the middle of the keyboard has arrived; the rest streams in.
+        if (p.done || p.loaded >= Math.min(p.total, 24)) this.hideSplash();
+      }
       this.soundPanel.setProgress(p, p.done ? 'ready' : 'loading');
       const inst = getInstrument(p.instrument);
       this.status.instrument.textContent = p.done ? inst.name : `${inst.name} · downloading ${p.loaded}/${p.total}`;
@@ -754,6 +972,7 @@ export class App {
       }
     });
     this.engine.on('ready', ({ id, failed }) => {
+      this.hideSplash();
       const inst = getInstrument(id);
       this.status.instrument.textContent = inst.name;
       if (inst.kind === 'synth') this.soundPanel.setProgress(null, 'synth');
@@ -761,6 +980,7 @@ export class App {
       void this.refreshCacheInfo();
     });
     this.engine.on('error', ({ message }) => {
+      this.hideSplash();
       this.soundPanel.setProgress(null, 'error', 'Offline – using the synth piano until samples can be downloaded');
       this.status.instrument.textContent = 'Offline fallback';
       toast(message, 'error', 8000);
@@ -875,12 +1095,19 @@ export class App {
     });
     this.player.on('end', () => {
       this.keyboard.setAuto([]);
+      if (this.flow) {
+        toast('End of the piece! Tap again to start over.', 'success');
+        this.player.setGate(this.flowTimes, 2);
+        this.transport.setClicker(0, this.flowTimes.length);
+      }
     });
     this.player.on('wait', ({ required }) => this.keyboard.setHints(required));
     this.clicker.on('step', ({ index, total }) => {
+      if (this.flow) return;
       this.transport.setClicker(index, total);
       this.keyboard.setHints(this.clicker.upcoming.map((n) => n.midi));
     });
+    this.player.on('gate', ({ index, total }) => this.transport.setClicker(index, total));
     this.clicker.on('end', () => toast('End of the piece! Press Home (or ⏮) to start again.', 'success'));
   }
 
@@ -1212,6 +1439,15 @@ export class App {
         case 'toggle-settings':
           this.togglePanel('settings');
           break;
+        case 'toggle-library':
+          this.railPanel(this.app.panels.libraryTab);
+          break;
+        case 'toggle-keyboard':
+          this.toggleKeyboard();
+          break;
+        case 'focus':
+          this.toggleFocus();
+          break;
         case 'shortcuts':
           this.showHelp();
           break;
@@ -1260,6 +1496,11 @@ export class App {
       this.keyboard.setAuto(active.filter((n) => hands[n.hand]));
       if (this.player.playerState !== 'waiting') this.keyboard.setHints(active.filter((n) => !hands[n.hand]).map((n) => n.midi));
       this.transport.update(this.player.position, this.player.playerState as PlayerState);
+    } else if (this.flow && s) {
+      // Flow mode: the autoplayer's timeline, gated by taps.
+      t = this.player.visualPosition;
+      this.keyboard.setAuto(this.player.activeNotesAt(t));
+      this.keyboard.setHints(this.player.playerState === 'waiting' || !this.player.isPlaying ? this.flowUpcoming().map((n) => n.midi) : []);
     } else if (mode === 'clicker' && s) {
       const target = this.clicker.position;
       this.clickerDisplay += (target - this.clickerDisplay) * 0.18;
@@ -1268,7 +1509,9 @@ export class App {
       this.keyboard.setAuto(this.clicker.litNotes());
     }
     this.falling.getTime = () => t;
-    if (s && mode !== 'play' && this.app.view !== 'notes' && this.sheet.isLoaded) this.updateSheetCursor(mode === 'clicker' ? this.clicker.position + 1e-4 : t);
+    if (s && mode !== 'play' && mode !== 'game' && this.app.view !== 'notes' && this.sheet.isLoaded) {
+      this.updateSheetCursor(mode === 'clicker' && !this.flow ? this.clicker.position + 1e-4 : t);
+    }
   }
 
   private updateSheetCursor(t: number) {
@@ -1324,10 +1567,16 @@ export class App {
           ),
           h('h3', null, 'Clicker mode'),
           h('table', { class: 'keys-table' },
-            row('Any key', 'Play the next chord'),
+            row('Any key', 'Flow: keep the music going · Tap tempo: play the next chord'),
             row('Click', 'Notes area or TAP button also plays'),
             row('Backspace', 'One chord back'),
             row('Home', 'Back to the start'),
+          ),
+          h('h3', null, '4K rhythm mode'),
+          h('table', { class: 'keys-table' },
+            row('A S D F', 'The four lanes (rebind them on the song screen)'),
+            row('Enter', 'Start / retry'),
+            row('Esc', 'Pause · R restart · Q quit'),
           ),
         ),
         h('div', null,
@@ -1339,6 +1588,9 @@ export class App {
             row('Ctrl + O', 'Open a score'),
             row('Ctrl + F', 'Search scores'),
             row('Ctrl + ,', 'Sound settings'),
+            row('Ctrl + B', 'Library'),
+            row('Ctrl + K', 'Collapse / expand the keyboard'),
+            row('Ctrl + .', 'Focus mode (hide everything but the music)'),
             row('Home / End', 'Jump to start / end (autoplay)'),
           ),
           h('h3', null, 'Tips'),

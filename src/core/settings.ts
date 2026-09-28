@@ -256,7 +256,21 @@ export const PARAMS: ParamDef[] = [
 // ------------------------------------------------------------ app state ----
 
 export type ViewMode = 'notes' | 'sheet' | 'split';
-export type AppMode = 'play' | 'autoplay' | 'clicker';
+export type AppMode = 'play' | 'autoplay' | 'clicker' | 'game';
+
+export interface GameSettings {
+  difficulty: 'easy' | 'normal' | 'hard' | 'expert';
+  source: 'melody' | 'both';
+  skin: 'arrows' | 'bars';
+  scroll: 'up' | 'down';
+  scrollSpeed: number;
+  speed: number;
+  keys: string[];
+  offset: number;
+  holds: boolean;
+  missSound: boolean;
+  fail: boolean;
+}
 
 export interface AppSettings {
   presetId: string;
@@ -288,6 +302,7 @@ export interface AppSettings {
     humanize: number;
   };
   clicker: {
+    style: 'tap' | 'flow';
     target: 'both' | 'R' | 'L';
     duration: 'natural' | 'hold' | 'next';
     velocity: 'score' | 'input' | 'fixed';
@@ -295,7 +310,8 @@ export interface AppSettings {
     allowRepeat: boolean;
     accompany: boolean;
   };
-  panels: { settings: boolean; library: boolean; libraryTab: 'library' | 'search' | 'info' };
+  panels: { settings: boolean; library: boolean; libraryTab: 'library' | 'search' | 'info'; keyboard: boolean; drawer: boolean; focus: boolean };
+  game: GameSettings;
   settingsSections: Partial<Record<SectionId, boolean>>;
 }
 
@@ -311,8 +327,21 @@ export const DEFAULT_APP: AppSettings = {
   notes: { lookahead: 3, showNames: true, colorR: '#4fc3f7', colorL: '#ffb74d', guides: true, particles: true },
   metronome: { enabled: false, bpm: 100, beats: 4, volume: 0.6, accent: true, sound: 'click' },
   player: { speed: 1, countIn: false, handL: true, handR: true, followScore: true, velocityScale: 1, applyPedal: true, waitMode: false, loop: false, humanize: 0 },
-  clicker: { target: 'both', duration: 'natural', velocity: 'score', fixedVelocity: 90, allowRepeat: false, accompany: true },
-  panels: { settings: true, library: true, libraryTab: 'library' },
+  clicker: { style: 'flow', target: 'both', duration: 'natural', velocity: 'score', fixedVelocity: 90, allowRepeat: false, accompany: true },
+  panels: { settings: false, library: false, libraryTab: 'library', keyboard: true, drawer: false, focus: false },
+  game: {
+    difficulty: 'normal',
+    source: 'both',
+    skin: 'arrows',
+    scroll: 'up',
+    scrollSpeed: 2,
+    speed: 1,
+    keys: ['KeyA', 'KeyS', 'KeyD', 'KeyF'],
+    offset: 0,
+    holds: true,
+    missSound: true,
+    fail: false,
+  },
   settingsSections: { output: true, touch: true },
 };
 

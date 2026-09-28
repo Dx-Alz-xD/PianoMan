@@ -7,12 +7,16 @@ A desktop piano for Windows, macOS and Linux. It has:
 - **An autoplayer** for MusicXML, MXL, MIDI and ABC files, with speed control, A–B loops, per-hand practice and a "wait for me" mode.
 - **Score search.** Almost 900 classical works are bundled in an offline catalogue, and BitMidi, the Mutopia Project and The Session can be searched online.
 - **Sheet music** for every file. MIDI and ABC files get notation generated automatically, and a cursor follows playback.
-- **Clicker mode.** Every key press, click or MIDI note plays the next chord of the score, so mashing keys in rhythm performs the piece.
+- **Clicker mode.** Every key press, click or MIDI note drives the score. In **Flow** style the music plays exactly as the autoplayer would for as long as you keep tapping; in **Tap tempo** style each tap plays the next chord.
+- **4K rhythm mode.** Any score, including ones you search for, is turned into a four-lane rhythm-game map (default keys `A S D F`) with FNF-style arrows or osu!mania-style bars. Hit the notes to play the piano part, with Perfect / Excellent / Good / Bad / Miss judgements, combo, accuracy, score and grades.
+- **A tidy, collapsible layout.** The library and sound panels fold into icon rails, the keyboard folds into a thin strip, and the transport sits at the bottom of the window.
 
 ![Autoplay with sheet music and falling notes](docs/screenshots/autoplay-split.png)
 
-| Falling notes | Clicker mode |
+| 4K mode – arrows | 4K mode – bars |
 | --- | --- |
+| ![4K arrows](docs/screenshots/4k-arrows.png) | ![4K bars](docs/screenshots/4k-bars.png) |
+| **Falling notes** | **Clicker mode (Flow)** |
 | ![Falling notes](docs/screenshots/falling-notes.png) | ![Clicker mode](docs/screenshots/clicker.png) |
 | **Search** | **Sound settings** |
 | ![Search](docs/screenshots/search.png) | ![Settings](docs/screenshots/settings.png) |
@@ -58,6 +62,20 @@ Installers are written to `release/`. You can also push a tag such as `v1.0.0`. 
 | **Pedals** | Hold `Space` (in free play) or `Shift` for sustain. You can also click the pedal buttons above the keyboard to latch them. |
 
 The panic key is `Esc`. `←`/`→` change the octave and `↑`/`↓` change the keyboard velocity. `F1` lists every shortcut.
+
+### Layout
+
+Everything folds away so the music gets the screen:
+
+| Part | How to open or close it |
+| --- | --- |
+| Library, search and score details | The icons on the left rail, or `Ctrl+B` |
+| Sound settings | The icon on the right rail, or `Ctrl+,`. Each section folds on its own, and **Collapse all** folds them all. |
+| Keyboard | The **Keyboard** button above it, or `Ctrl+K`. Folded, it becomes a thin strip that still lights up the notes. |
+| Transport options (loop, count-in, wait for me, clicker options) | **Options** in the bottom bar |
+| Everything at once | The eye icon in the top bar, or `Ctrl+.` (focus mode) |
+
+Play/pause, the timeline and speed are in the bar at the bottom of the window. PianoMan shows a loading screen while it starts and downloads the first samples.
 
 ## Instruments & presets
 
@@ -121,12 +139,47 @@ Use the **Sheet** or **Split** view. The cursor follows playback, and clicking a
 
 ### Clicker mode
 
-Every tap plays the next chord. A tap can be any key, a mouse click on the notes area or the **TAP** button, or any MIDI key. The options are:
+A tap can be any key, a mouse click on the notes area or the **TAP** button, or any MIDI key. There are two styles, switched in the bottom bar:
 
-- **Taps play**: both hands, or only the right or left hand. With **Other hand follows** on, the other hand plays along at the tempo you are tapping.
-- **Notes last**: as written (scaled to your tapping speed), while the key is held, or until the next tap.
-- **Loudness**: from the score, from your touch, or fixed.
-- `Backspace` steps back one chord and `Home` restarts.
+- **Flow** (default): the piece plays exactly like the autoplayer, with written rhythms, note lengths, dynamics and pedalling, as long as you keep tapping. Each tap lets the music continue to the next chord. You can tap up to two chords ahead, so mashing keys never makes it rush. When you stop tapping, it waits at the next chord.
+- **Tap tempo**: every tap plays the next chord, so the music follows the speed of your taps. The options are:
+  - **Taps play**: both hands, or only the right or left hand. With **Other hand follows** on, the other hand plays along at the tempo you are tapping.
+  - **Notes last**: as written (scaled to your tapping speed), while the key is held, or until the next tap.
+  - **Loudness**: from the score, from your touch, or fixed.
+
+In both styles, `Backspace` steps back one chord and `Home` restarts.
+
+### 4K rhythm mode
+
+Open any score (a demo, your library, a file or a search result) and pick **4K** in the top bar. PianoMan builds a four-lane map from it:
+
+- **Onsets are picked by musical weight.** Downbeats, beats, accents, chords and long notes come first, and each difficulty keeps a minimum gap between notes. Dense passages are therefore thinned out on the beat instead of at random. **Easy** is one note at a time. **Normal**, **Hard** and **Expert** add jumps on strong beats, faster streams and shorter holds.
+- **Lanes follow the melody.** Higher notes sit further right, rising lines move right and falling lines move left, and repeated notes stay in their lane unless that would make an unplayable jack.
+- **Long notes become holds.** You can turn holds off.
+- **Map from**: both hands, or the melody (right hand) only.
+
+Every map note carries the piano notes it stands for. Hit it and they play, lined up with the accompaniment, which plays by itself. Miss it and that note stays silent. An early hit still sounds on the beat.
+
+| Judgement | Window | Accuracy |
+| --- | --- | --- |
+| Perfect | ±25 ms | 100 % |
+| Excellent | ±50 ms | 90 % |
+| Good | ±90 ms | 65 % |
+| Bad | ±135 ms | 30 % |
+| Miss | later than 135 ms, or not hit | 0 % |
+
+The windows are in real time, so they stay the same at any song speed. The score grows with your combo. Grades are **SS** (all Perfect), **S** (95 % or more with no misses), **A** (90 %), **B** (80 %), **C** (70 %) and **D**, or **F** if you fail with *Fail at zero health* on. Your best score for each song and difficulty is saved.
+
+On the song screen you can choose:
+
+- **Notes**: arrows (FNF) or bars (osu!mania).
+- **Scroll**: upscroll or downscroll, and scroll speed.
+- **Song speed**: 0.5× to 1.5×.
+- **Keys**: `A S D F` by default. Click a key to rebind it, or pick a preset: `D F J K`, the arrow keys, or `Z X , .`.
+- **Offset**: raise it if you tend to hit late.
+- **Options**: hold notes, a miss sound, and failing at zero health.
+
+`Enter` starts or retries, and `Esc` pauses (then `R` restarts and `Q` quits). A MIDI keyboard works too: any four neighbouring white keys map onto the lanes, and you can also tap the lanes on a touch screen.
 
 ---
 
@@ -147,6 +200,7 @@ electron/          main process (window, app:// protocol, cached network fetch, 
 src/audio/         sound engine, instruments, presets, sample loader, tuning, reverb, synth voices, metronome, recorder
 src/score/         score model, MusicXML / MXL / MIDI / ABC importers, notation generator
 src/player/        autoplayer and clicker mode
+src/game/          4K rhythm mode: chart generator, judgement and scoring, play session, game view
 src/search/        search providers and the bundled score index
 src/ui/            keyboard, falling notes, sheet view, panels, transport, controls
 scripts/           instrument-table, score-index and demo generators; dev launcher

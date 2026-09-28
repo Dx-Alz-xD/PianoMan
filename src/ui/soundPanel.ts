@@ -47,8 +47,8 @@ export class SoundPanel {
     // Presets.
     this.presetSelect = h('select', { class: 'preset-select', 'aria-label': 'Preset', onchange: () => this.handlers.preset(this.presetSelect.value) }) as HTMLSelectElement;
     this.deleteBtn = h('button', { class: 'icon-btn', title: 'Delete this preset', onclick: () => this.handlers.deletePreset(this.presetId) }, icon('trash'));
-    const presetCard = h('section', { class: 'card preset-card' },
-      h('div', { class: 'card-title' }, icon('star', 16), h('span', null, 'Preset'), h('span', { class: 'modified-dot', title: 'Changed from the saved preset' })),
+    const presetCard = h('details', { class: 'card preset-card', open: true },
+      h('summary', { class: 'card-title' }, icon('star', 16), h('span', null, 'Preset'), h('span', { class: 'modified-dot', title: 'Changed from the saved preset' }), icon('chevron', 15)),
       this.presetSelect,
       h('div', { class: 'btn-row' },
         h('button', { class: 'btn small', title: 'Save the current sound as a new preset', onclick: () => this.handlers.savePreset() }, icon('save', 15), 'Save as…'),
@@ -85,8 +85,8 @@ export class SoundPanel {
       ],
       onChange: (v) => this.handlers.quality(v as SampleQuality),
     });
-    const instCard = h('section', { class: 'card inst-card' },
-      h('div', { class: 'card-title' }, icon('piano', 16), h('span', null, 'Instrument')),
+    const instCard = h('details', { class: 'card inst-card', open: true },
+      h('summary', { class: 'card-title' }, icon('piano', 16), h('span', null, 'Instrument'), icon('chevron', 15)),
       this.instSelect,
       this.instInfo,
       h('div', { class: 'progress' }, this.progressBar),
@@ -106,7 +106,15 @@ export class SoundPanel {
       return details;
     });
 
-    this.el.append(h('div', { class: 'panel-scroll' }, presetCard, instCard, ...sections, this.extra));
+    const collapseAll = h('button', {
+      class: 'link-btn',
+      title: 'Collapse every section',
+      onclick: () => this.el.querySelectorAll('details[open]').forEach((d) => ((d as HTMLDetailsElement).open = false)),
+    }, 'Collapse all');
+    this.el.append(
+      h('div', { class: 'panel-head' }, h('span', null, 'Sound'), collapseAll),
+      h('div', { class: 'panel-scroll' }, presetCard, instCard, ...sections, this.extra),
+    );
   }
 
   private makeControl(def: ParamDef): AnyControl {

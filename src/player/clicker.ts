@@ -8,6 +8,8 @@ import type { PianoEngine } from '../audio/engine';
 import type { Hand, Score, ScoreNote } from '../score/model';
 
 export interface ClickerOptions {
+  /** 'tap': each tap plays one chord at your tempo. 'flow': taps keep the music going at its written timing. */
+  style: 'tap' | 'flow';
   target: 'both' | Hand;
   duration: 'natural' | 'hold' | 'next';
   velocity: 'score' | 'input' | 'fixed';
@@ -39,7 +41,7 @@ export interface ClickerEvents {
 const CHORD_WINDOW = 0.035;
 
 export class Clicker extends Emitter<ClickerEvents> {
-  options: ClickerOptions = { target: 'both', duration: 'natural', velocity: 'score', fixedVelocity: 90, allowRepeat: false, accompany: true };
+  options: ClickerOptions = { style: 'tap', target: 'both', duration: 'natural', velocity: 'score', fixedVelocity: 90, allowRepeat: false, accompany: true };
   private score: Score | null = null;
   private steps: Step[] = [];
   private index = 0;
@@ -95,6 +97,16 @@ export class Clicker extends Emitter<ClickerEvents> {
 
   get total() {
     return this.steps.length;
+  }
+
+  /** Onset time of every step (chord), for flow mode's tap points. */
+  stepTimes(): number[] {
+    return this.steps.map((s) => s.time);
+  }
+
+  /** Notes of the step at or after score time `t` (flow-mode hints). */
+  notesAt(t: number): ScoreNote[] {
+    return this.steps.find((s) => s.time >= t - 1e-3)?.notes || [];
   }
 
   get current() {

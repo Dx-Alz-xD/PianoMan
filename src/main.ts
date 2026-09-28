@@ -7,6 +7,7 @@ try {
   (window as unknown as { pianoman_app?: App }).pianoman_app = app;
 } catch (err) {
   console.error(err);
+  document.getElementById('splash')?.remove();
   root.innerHTML = '';
   const pre = document.createElement('pre');
   pre.className = 'fatal';
