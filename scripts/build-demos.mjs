@@ -1,5 +1,5 @@
 // Generates the bundled demo scores in public/demos/ (public-domain pieces,
-// simple two-hand arrangements) using PianoMan's own MusicXML writer.
+// simple two-hand arrangements) using the app's own MusicXML writer.
 //   node scripts/build-demos.mjs
 import { createServer } from 'vite';
 import { mkdirSync, writeFileSync } from 'node:fs';

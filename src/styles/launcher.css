@@ -1,0 +1,450 @@
+/* Start screen: choose Piano or 4K Beats. */
+
+.lx {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(20px, 4vh, 44px);
+  padding: 32px 40px;
+  overflow: hidden;
+  color: #f4f2ff;
+  font-family: 'Outfit Variable', 'Segoe UI', system-ui, sans-serif;
+  background: #07060d;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.lx.show {
+  opacity: 1;
+}
+
+.lx-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.lx-orb {
+  position: absolute;
+  width: 60vmax;
+  height: 60vmax;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.55;
+  animation: lx-drift 16s ease-in-out infinite alternate;
+}
+
+.lx-orb.a {
+  left: -18vmax;
+  top: -22vmax;
+  background: radial-gradient(circle, #ff3cac 0%, rgba(120, 75, 160, 0.4) 45%, transparent 70%);
+}
+
+.lx-orb.b {
+  right: -20vmax;
+  bottom: -26vmax;
+  background: radial-gradient(circle, #2b86c5 0%, rgba(43, 134, 197, 0.35) 45%, transparent 70%);
+  animation-delay: -8s;
+}
+
+@keyframes lx-drift {
+  to {
+    transform: translate(6vmax, 4vmax) scale(1.1);
+  }
+}
+
+.lx-grid {
+  position: absolute;
+  left: -50%;
+  right: -50%;
+  bottom: -30%;
+  height: 70%;
+  background-image: linear-gradient(rgba(255, 60, 172, 0.35) 1px, transparent 1px), linear-gradient(90deg, rgba(43, 179, 255, 0.28) 1px, transparent 1px);
+  background-size: 64px 64px;
+  transform: perspective(420px) rotateX(62deg);
+  transform-origin: 50% 0;
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 45%, transparent 100%);
+  animation: lx-grid 3s linear infinite;
+  opacity: 0.55;
+}
+
+@keyframes lx-grid {
+  to {
+    background-position: 0 64px, 0 0;
+  }
+}
+
+.lx-head {
+  position: relative;
+  text-align: center;
+  transform: translateY(-16px);
+  opacity: 0;
+  transition: transform 0.7s cubic-bezier(0.2, 0.9, 0.2, 1) 0.05s, opacity 0.7s 0.05s;
+}
+
+.lx.show .lx-head {
+  transform: none;
+  opacity: 1;
+}
+
+.lx-logo {
+  margin: 0;
+  font-size: clamp(46px, 7.5vw, 104px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-shadow: 0 10px 50px rgba(255, 60, 172, 0.35);
+}
+
+.lx-logo i {
+  font-style: normal;
+  opacity: 0.35;
+  margin: 0 0.04em;
+}
+
+.lx-logo b {
+  background: linear-gradient(90deg, #ff3cac, #b28cff, #2bb3ff, #ff3cac);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: lx-shimmer 6s linear infinite;
+}
+
+@keyframes lx-shimmer {
+  to {
+    background-position: 300% 0;
+  }
+}
+
+.lx-head p {
+  margin: 10px 0 0;
+  color: rgba(230, 225, 255, 0.65);
+  font-size: 17px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.lx-cards {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  width: min(1120px, 100%);
+}
+
+.lx-card {
+  --rx: 0deg;
+  --ry: 0deg;
+  --mx: 50%;
+  --my: 50%;
+  --glow: 43, 179, 255;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: clamp(340px, 52vh, 460px);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 28px;
+  background: linear-gradient(160deg, rgba(30, 26, 58, 0.78), rgba(12, 11, 24, 0.82));
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+  transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(30px);
+  opacity: 0;
+  transition: transform 0.25s ease, box-shadow 0.3s, border-color 0.3s, opacity 0.7s;
+}
+
+.lx.show .lx-card {
+  opacity: 1;
+  transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry));
+}
+
+.lx.show .lx-beats {
+  transition-delay: 0s, 0s, 0s, 0.12s;
+}
+
+.lx-beats {
+  --glow: 255, 60, 172;
+}
+
+.lx-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(600px circle at var(--mx) var(--my), rgba(var(--glow), 0.18), transparent 45%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.lx-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(135deg, rgba(var(--glow), 0.9), rgba(255, 255, 255, 0.1) 40%, rgba(var(--glow), 0.6));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.lx-card.focus {
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55), 0 0 60px rgba(var(--glow), 0.25);
+}
+
+.lx-card.focus::before,
+.lx-card.focus::after {
+  opacity: 1;
+}
+
+.lx-art {
+  position: relative;
+  flex: 1 1 58%;
+  min-height: 170px;
+  overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 100%, rgba(var(--glow), 0.25), transparent 60%);
+}
+
+.lx-text {
+  position: relative;
+  padding: 20px 28px 26px;
+}
+
+.lx-text h2 {
+  margin: 0 0 6px;
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.lx-text p {
+  margin: 0 0 14px;
+  max-width: 44ch;
+  color: rgba(225, 222, 245, 0.7);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.lx-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lx-chips span {
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(240, 238, 255, 0.85);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.lx-go {
+  position: absolute;
+  right: 24px;
+  top: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(var(--glow), 0.2);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0;
+  transform: translateX(8px);
+  transition: opacity 0.25s, transform 0.25s;
+}
+
+.lx-card.focus .lx-go {
+  opacity: 1;
+  transform: none;
+}
+
+.lx-go kbd {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  font: inherit;
+}
+
+/* Piano art: a keyboard with a light sweep. */
+.lx-keys {
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  display: flex;
+  gap: 5px;
+  transform: translateX(-50%) perspective(600px) rotateX(38deg);
+  transform-origin: 50% 100%;
+}
+
+.lx-white {
+  position: relative;
+  width: clamp(26px, 2.6vw, 38px);
+  height: clamp(140px, 22vh, 200px);
+  border-radius: 0 0 8px 8px;
+  background: linear-gradient(180deg, #ffffff, #e7e6f2 85%, #c9c7da);
+  box-shadow: inset 0 -8px 0 rgba(0, 0, 0, 0.12), 0 6px 18px rgba(0, 0, 0, 0.35);
+  animation: lx-press 2.8s ease-in-out infinite;
+}
+
+.lx-black {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  right: -12px;
+  width: 60%;
+  height: 60%;
+  border-radius: 0 0 6px 6px;
+  background: linear-gradient(180deg, #2c2640, #0e0b18);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+  animation: lx-press-b 2.8s ease-in-out infinite;
+}
+
+@keyframes lx-press {
+  0%, 30%, 100% {
+    transform: none;
+    background: linear-gradient(180deg, #ffffff, #e7e6f2 85%, #c9c7da);
+  }
+  12% {
+    transform: translateY(5px);
+    background: linear-gradient(180deg, #bff3ff, #6fd6ff 85%, #3aa7ff);
+  }
+}
+
+@keyframes lx-press-b {
+  0%, 30%, 100% {
+    transform: none;
+    background: linear-gradient(180deg, #2c2640, #0e0b18);
+  }
+  12% {
+    transform: translateY(4px);
+    background: linear-gradient(180deg, #ff8bd4, #c2379b);
+  }
+}
+
+/* 4K art: arrows rising into receptors. */
+.lx-arrows {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  gap: 14px;
+  transform: translateX(-50%);
+}
+
+.lx-lane {
+  position: relative;
+  width: clamp(48px, 5vw, 66px);
+  height: 100%;
+  border-radius: 12px;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.15));
+  overflow: hidden;
+}
+
+.lx-lane svg {
+  width: 100%;
+  height: 100%;
+}
+
+.lx-receptor,
+.lx-note {
+  position: absolute;
+  left: 8%;
+  width: 84%;
+  aspect-ratio: 1;
+}
+
+.lx-receptor {
+  top: 14px;
+  transform: rotate(var(--r));
+  fill: rgba(255, 255, 255, 0.14);
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: 1;
+  animation: lx-receive 0.8s ease-in-out infinite;
+}
+
+.lx-note {
+  bottom: -30%;
+  fill: var(--c);
+  filter: drop-shadow(0 0 10px var(--c));
+  animation: lx-rise 2.4s linear infinite;
+}
+
+.lx-note svg {
+  transform: rotate(var(--r));
+}
+
+@keyframes lx-rise {
+  from {
+    bottom: -30%;
+  }
+  to {
+    bottom: calc(100% - 14px - 84%);
+    opacity: 0.9;
+  }
+}
+
+@keyframes lx-receive {
+  50% {
+    fill: rgba(255, 255, 255, 0.28);
+  }
+}
+
+.lx.chose-piano .lx-piano,
+.lx.chose-beats .lx-beats {
+  transform: perspective(1000px) scale(1.04);
+  box-shadow: 0 0 120px rgba(var(--glow), 0.5);
+}
+
+.lx.chose-piano .lx-beats,
+.lx.chose-beats .lx-piano {
+  opacity: 0.25;
+  transform: perspective(1000px) scale(0.96);
+}
+
+.lx-foot {
+  position: relative;
+  display: flex;
+  gap: 28px;
+  color: rgba(220, 215, 245, 0.5);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 900px) {
+  .lx-cards {
+    grid-template-columns: 1fr;
+  }
+  .lx-card {
+    min-height: 260px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lx *,
+  .lx *::before {
+    animation: none !important;
+  }
+}

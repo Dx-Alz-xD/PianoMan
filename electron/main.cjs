@@ -1,4 +1,4 @@
-// PianoMan – Electron main process.
+// PIANO-BEATS – Electron main process.
 //
 // Responsibilities:
 //  * the app window, menu and the app:// protocol that serves the built UI
@@ -6,6 +6,7 @@
 //    score downloads), with an on-disk cache so instruments work offline once
 //    they have been downloaded
 //  * file dialogs, the score library on disk, and opening files from the OS
+//  * the 4K area's song library, media protocol and yt-dlp (see beats.cjs)
 'use strict';
 
 const { app, BrowserWindow, Menu, dialog, ipcMain, net, protocol, session, shell } = require('electron');
@@ -14,15 +15,29 @@ const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const crypto = require('node:crypto');
 const { pathToFileURL } = require('node:url');
+const beats = require('./beats.cjs');
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 const DIST = path.join(__dirname, '..', 'dist');
 const SCORE_EXTENSIONS = ['musicxml', 'xml', 'mxl', 'mid', 'midi', 'kar', 'abc'];
-const USER_AGENT = `PianoMan/${app.getVersion()} (+https://github.com/Dx-Alz-xD/PianoMan)`;
+const BEATMAP_EXTENSIONS = ['osz', 'osu'];
+const USER_AGENT = `PIANO-BEATS/${app.getVersion()} (+https://github.com/Dx-Alz-xD/PianoMan)`;
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } },
+  beats.MEDIA_SCHEME,
 ]);
+
+// The app used to be called PianoMan: keep its downloads, library and settings.
+(function migrateUserData() {
+  try {
+    const current = app.getPath('userData');
+    const legacy = path.join(app.getPath('appData'), 'PianoMan');
+    if (legacy !== current && fs.existsSync(legacy) && !fs.existsSync(current)) fs.renameSync(legacy, current);
+  } catch {
+    /* start fresh */
+  }
+})();
 
 let mainWindow = null;
 const pendingOpenPaths = [];
@@ -153,12 +168,18 @@ function isScorePath(p) {
   return SCORE_EXTENSIONS.includes(path.extname(p).slice(1).toLowerCase());
 }
 
+function isBeatmapPath(p) {
+  return BEATMAP_EXTENSIONS.includes(path.extname(p).slice(1).toLowerCase());
+}
+
 function queueOpenPath(p) {
-  if (!p || !isScorePath(p) || !fs.existsSync(p)) return;
+  if (!p || !(isScorePath(p) || isBeatmapPath(p)) || !fs.existsSync(p)) return;
   if (mainWindow && !mainWindow.webContents.isLoading()) {
-    readScoreFile(p)
-      .then((file) => mainWindow.webContents.send('open-file', file))
-      .catch(() => {});
+    if (isBeatmapPath(p)) mainWindow.webContents.send('open-beatmap', path.resolve(p));
+    else
+      readScoreFile(p)
+        .then((file) => mainWindow.webContents.send('open-file', file))
+        .catch(() => {});
   } else {
     pendingOpenPaths.push(p);
   }
@@ -260,14 +281,21 @@ function registerIpc() {
 
   ipcMain.handle('app:pendingFiles', async () => {
     const files = [];
-    while (pendingOpenPaths.length) {
+    for (const p of pendingOpenPaths.filter(isScorePath)) {
       try {
-        files.push(await readScoreFile(pendingOpenPaths.shift()));
+        files.push(await readScoreFile(p));
       } catch {
         /* ignore unreadable */
       }
     }
+    for (let i = pendingOpenPaths.length - 1; i >= 0; i--) if (isScorePath(pendingOpenPaths[i])) pendingOpenPaths.splice(i, 1);
     return files;
+  });
+
+  ipcMain.handle('app:pendingBeatmaps', () => {
+    const maps = pendingOpenPaths.filter(isBeatmapPath);
+    for (let i = pendingOpenPaths.length - 1; i >= 0; i--) if (isBeatmapPath(pendingOpenPaths[i])) pendingOpenPaths.splice(i, 1);
+    return maps;
   });
 
   ipcMain.handle('shell:openExternal', (_e, url) => {
@@ -330,7 +358,7 @@ function buildMenu() {
         { label: 'Keyboard Shortcuts', accelerator: 'F1', click: () => sendMenu('shortcuts') },
         { label: 'Open Sample Cache Folder', click: () => shell.openPath(path.join(userDir(), 'cache')) },
         { type: 'separator' },
-        { label: 'About PianoMan', click: () => sendMenu('about') },
+        { label: 'About PIANO-BEATS', click: () => sendMenu('about') },
       ],
     },
   ];
@@ -346,7 +374,7 @@ function createWindow() {
     minWidth: 980,
     minHeight: 640,
     backgroundColor: '#0d0f14',
-    title: 'PianoMan',
+    title: 'PIANO-BEATS',
     icon: path.join(__dirname, '..', 'build', 'icon.png'),
     show: false,
     webPreferences: {
@@ -388,7 +416,7 @@ function registerAppProtocol() {
 }
 
 function configurePermissions() {
-  // Current Chromium reports every Web MIDI request as "midiSysex"; PianoMan
+  // Current Chromium reports every Web MIDI request as "midiSysex"; PIANO-BEATS
   // only ever reads from MIDI inputs, so both are granted.
   const allowed = new Set(['midi', 'midiSysex', 'clipboard-sanitized-write', 'fullscreen']);
   session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => callback(allowed.has(permission)));
@@ -414,13 +442,15 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   process.argv.slice(app.isPackaged ? 1 : 2).forEach((p) => {
-    if (isScorePath(p) && fs.existsSync(p)) pendingOpenPaths.push(path.resolve(p));
+    if ((isScorePath(p) || isBeatmapPath(p)) && fs.existsSync(p)) pendingOpenPaths.push(path.resolve(p));
   });
 
   app.whenReady().then(() => {
     registerAppProtocol();
+    beats.registerMediaProtocol();
     configurePermissions();
     registerIpc();
+    beats.registerBeatsIpc(() => mainWindow);
     buildMenu();
     createWindow();
     app.on('activate', () => {

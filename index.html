@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob: data:; connect-src 'self' ws: http://localhost:* https:; worker-src 'self' blob:"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: media: https:; font-src 'self' data:; media-src 'self' blob: data: media:; connect-src 'self' ws: http://localhost:* https: media: blob:; worker-src 'self' blob:"
     />
-    <title>PianoMan</title>
+    <title>PIANO-BEATS</title>
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <style>
       #splash {
@@ -16,14 +16,15 @@
         z-index: 2000;
         display: grid;
         place-items: center;
-        background: radial-gradient(ellipse at 50% 30%, #1b2030 0%, #0c0e13 70%);
+        background: radial-gradient(900px 600px at 25% 20%, rgba(255, 60, 172, 0.22), transparent 60%), radial-gradient(900px 700px at 80% 85%, rgba(43, 134, 197, 0.25), transparent 60%), #07060d;
         color: #e7e9f0;
-        font: 14px/1.4 'Inter', 'Segoe UI', system-ui, sans-serif;
-        transition: opacity 0.45s ease, visibility 0.45s;
+        font: 14px/1.4 'Outfit Variable', 'Inter', 'Segoe UI', system-ui, sans-serif;
+        transition: opacity 0.6s ease, visibility 0.6s, transform 0.6s ease;
       }
       #splash.done {
         opacity: 0;
         visibility: hidden;
+        transform: scale(1.04);
       }
       .splash-card {
         display: flex;
@@ -35,17 +36,48 @@
       .splash-logo {
         width: 84px;
         height: 84px;
-        filter: drop-shadow(0 10px 30px rgba(124, 77, 255, 0.45));
+        filter: drop-shadow(0 12px 36px rgba(255, 60, 172, 0.5));
         animation: splash-float 2.4s ease-in-out infinite;
       }
       .splash-name {
         margin: 0;
-        font-size: 30px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
+        font-size: 34px;
+        font-weight: 800;
+        letter-spacing: 2px;
+      }
+      .splash-name i {
+        font-style: normal;
+        color: rgba(255, 255, 255, 0.4);
       }
       .splash-name b {
-        color: #8c6cff;
+        background: linear-gradient(90deg, #ff3cac, #8c6cff, #2bb3ff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .splash-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 18px;
+      }
+      .splash-arrows {
+        display: flex;
+        gap: 6px;
+        height: 34px;
+        align-items: center;
+      }
+      .splash-arrows svg {
+        width: 22px;
+        height: 22px;
+        animation: splash-hit 1.2s ease-in-out infinite;
+      }
+      .splash-arrows svg:nth-child(1) { fill: #ff5ac8; transform: rotate(-90deg); animation-delay: 0s; }
+      .splash-arrows svg:nth-child(2) { fill: #29d3ff; transform: rotate(180deg); animation-delay: 0.15s; }
+      .splash-arrows svg:nth-child(3) { fill: #3dff6e; animation-delay: 0.3s; }
+      .splash-arrows svg:nth-child(4) { fill: #ff4d5e; transform: rotate(90deg); animation-delay: 0.45s; }
+      @keyframes splash-hit {
+        0%, 60%, 100% { opacity: 0.35; }
+        30% { opacity: 1; filter: drop-shadow(0 0 8px currentColor); }
       }
       .splash-keys {
         display: flex;
@@ -79,7 +111,7 @@
       #splash-fill {
         height: 100%;
         width: 4%;
-        background: linear-gradient(90deg, #8c6cff, #26c6da);
+        background: linear-gradient(90deg, #ff3cac, #8c6cff, #2bb3ff);
         transition: width 0.3s ease;
       }
       #splash-status {
@@ -102,8 +134,11 @@
     <div id="splash" role="status" aria-live="polite">
       <div class="splash-card">
         <img class="splash-logo" src="./icon.svg" alt="" />
-        <h1 class="splash-name">Piano<b>Man</b></h1>
-        <div class="splash-keys" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <h1 class="splash-name">PIANO<i>-</i><b>BEATS</b></h1>
+        <div class="splash-row" aria-hidden="true">
+          <div class="splash-keys"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="splash-arrows"><svg viewBox="0 0 18 18"><path d="M9 1 17 9h-4.5v8h-7V9H1z"/></svg><svg viewBox="0 0 18 18"><path d="M9 1 17 9h-4.5v8h-7V9H1z"/></svg><svg viewBox="0 0 18 18"><path d="M9 1 17 9h-4.5v8h-7V9H1z"/></svg><svg viewBox="0 0 18 18"><path d="M9 1 17 9h-4.5v8h-7V9H1z"/></svg></div>
+        </div>
         <div class="splash-bar"><div id="splash-fill"></div></div>
         <p id="splash-status">Starting…</p>
       </div>

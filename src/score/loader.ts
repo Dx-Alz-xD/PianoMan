@@ -61,7 +61,7 @@ export function loadScore(data: Uint8Array, opts: LoadOptions = {}): Score {
       score = parseAbc(decodeText(data), { fileName: opts.fileName, tuneIndex: opts.tuneIndex });
       break;
     default:
-      throw new Error('Unrecognised file. PianoMan reads MusicXML (.musicxml, .xml, .mxl), MIDI (.mid, .midi, .kar) and ABC (.abc).');
+      throw new Error('Unrecognised file. PIANO-BEATS reads MusicXML (.musicxml, .xml, .mxl), MIDI (.mid, .midi, .kar) and ABC (.abc).');
   }
   score.source = opts.source;
   score.sourceUrl = opts.sourceUrl;

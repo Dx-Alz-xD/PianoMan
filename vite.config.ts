@@ -9,6 +9,10 @@ export default defineConfig({
     chunkSizeWarningLimit: 4000,
     sourcemap: false,
   },
+  worker: {
+    // ES workers can code-split (the MP3 encoder is loaded on demand).
+    format: 'es',
+  },
   server: {
     port: 5173,
     strictPort: true,

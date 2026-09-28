@@ -1,25 +1,37 @@
-# PianoMan
+# PIANO-BEATS
 
-A desktop piano for Windows, macOS and Linux. It has:
+A desktop piano **and** a four-key rhythm game, for Windows, macOS and Linux. After the loading screen you choose where to go; the logo (or **Home**) brings you back.
+
+**Piano**
 
 - **Sampled instruments streamed from the internet.** Steinway, Yamaha and Kawai grands, uprights, electric pianos, harpsichord, organs and mallets, with multiple velocity layers. Samples are cached on disk, so each instrument downloads once.
 - **A full sound-design panel** covering touch, voicing, dampers, pedals, tuning and temperaments, EQ, room reverb, stereo, effects and dynamics.
 - **An autoplayer** for MusicXML, MXL, MIDI and ABC files, with speed control, A–B loops, per-hand practice and a "wait for me" mode.
 - **Score search.** Almost 900 classical works are bundled in an offline catalogue, and BitMidi, the Mutopia Project and The Session can be searched online.
-- **Sheet music** for every file. MIDI and ABC files get notation generated automatically, and a cursor follows playback.
-- **Clicker mode.** Every key press, click or MIDI note drives the score. In **Flow** style the music plays exactly as the autoplayer would for as long as you keep tapping; in **Tap tempo** style each tap plays the next chord.
-- **4K rhythm mode.** Any score, including ones you search for, is turned into a four-lane rhythm-game map (default keys `A S D F`) with FNF-style arrows or osu!mania-style bars. Hit the notes to play the piano part, with Perfect / Excellent / Good / Bad / Miss judgements, combo, accuracy, score and grades.
-- **A tidy, collapsible layout.** The library and sound panels fold into icon rails, the keyboard folds into a thin strip, and the transport sits at the bottom of the window.
+- **Sheet music** for every file, and **clicker mode** (Flow or Tap tempo).
 
-![Autoplay with sheet music and falling notes](docs/screenshots/autoplay-split.png)
+**4K Beats**
 
-| 4K mode – arrows | 4K mode – bars |
+- **Songs from anywhere:** YouTube (search, or paste a link), audio and video files, osu! beatmaps (.osz/.osu) and piano scores (the same search as the piano).
+- **Automatic maps:** PIANO-BEATS listens to the song (beats, tempo, onsets, sustains) and makes maps from Easy to Expert.
+- **A map editor** that is as simple or as detailed as you like: generate with a preset, tune every generator setting, or place every note and hold by hand on a beat-snap timeline over the waveform.
+- **A record player** on the song screen with the song's cover on the label. It plays the preview; grab it to scratch.
+- **Gameplay** with arrows, bars, circles or diamonds; Perfect / Excellent / Good / Bad / Miss judgements, accuracy, combo, score, grades, unstable rate and a timing graph; background videos; mods; and a long list of settings.
+- **Export to osu!** as an osu!mania 4K .osz.
+
+![Song select with the record player](docs/screenshots/beats-select.png)
+
+| Start screen | 4K main menu |
 | --- | --- |
-| ![4K arrows](docs/screenshots/4k-arrows.png) | ![4K bars](docs/screenshots/4k-bars.png) |
-| **Falling notes** | **Clicker mode (Flow)** |
-| ![Falling notes](docs/screenshots/falling-notes.png) | ![Clicker mode](docs/screenshots/clicker.png) |
-| **Search** | **Sound settings** |
-| ![Search](docs/screenshots/search.png) | ![Settings](docs/screenshots/settings.png) |
+| ![Launcher](docs/screenshots/launcher.png) | ![Menu](docs/screenshots/beats-menu.png) |
+| **Playing (background video)** | **Results** |
+| ![Play](docs/screenshots/beats-play.png) | ![Results](docs/screenshots/beats-results.png) |
+| **Map editor** | **Importing** |
+| ![Editor](docs/screenshots/beats-editor.png) | ![Import](docs/screenshots/beats-import.png) |
+| **Piano: autoplay with sheet music** | **Piano: sound settings** |
+| ![Autoplay](docs/screenshots/autoplay-split.png) | ![Settings](docs/screenshots/settings.png) |
+| **Piano: falling notes** | **Piano: score search** |
+| ![Falling notes](docs/screenshots/falling-notes.png) | ![Search](docs/screenshots/search.png) |
 
 ---
 
@@ -75,11 +87,11 @@ Everything folds away so the music gets the screen:
 | Transport options (loop, count-in, wait for me, clicker options) | **Options** in the bottom bar |
 | Everything at once | The eye icon in the top bar, or `Ctrl+.` (focus mode) |
 
-Play/pause, the timeline and speed are in the bar at the bottom of the window. PianoMan shows a loading screen while it starts and downloads the first samples.
+Play/pause, the timeline and speed are in the bar at the bottom of the window.
 
 ## Instruments & presets
 
-All instruments are free sample libraries hosted on GitHub. PianoMan downloads the samples the first time you pick an instrument and tries a mirror if one host fails. The middle of the keyboard loads first, so you can start playing within a second or two. **Sample quality** (Full, Balanced or Light) controls how many velocity layers are downloaded. With no internet connection, the synthesized piano, electric piano and organ still work.
+All instruments are free sample libraries hosted on GitHub. PIANO-BEATS downloads the samples the first time you pick an instrument and tries a mirror if one host fails. The middle of the keyboard loads first, so you can start playing within a second or two. **Sample quality** (Full, Balanced or Light) controls how many velocity layers are downloaded. With no internet connection, the synthesized piano, electric piano and organ still work.
 
 | Category | Instruments |
 | --- | --- |
@@ -109,7 +121,7 @@ The piano engine also switches velocity layers, cycles round-robin samples, and 
 
 ## Scores
 
-**Open** files with *Open file…* or `Ctrl+O`, drag and drop them onto the window, or double-click one in your file manager (file associations are set up by the installer). **From URL…** loads any direct link. PianoMan reads:
+**Open** files with *Open file…* or `Ctrl+O`, drag and drop them onto the window, or double-click one in your file manager (file associations are set up by the installer). **From URL…** loads any direct link. PIANO-BEATS reads:
 
 - MusicXML (`.musicxml`, `.xml`) and compressed MusicXML (`.mxl`), including repeats, voltas, D.C./D.S./Fine/Coda, ties, grace notes, tempo changes, dynamics and hairpins, articulations, arpeggios and pedal marks.
 - MIDI (`.mid`, `.midi`, `.kar`), including tempo maps and pedal controllers. Zipped multi-movement MIDI downloads also open.
@@ -149,37 +161,84 @@ A tap can be any key, a mouse click on the notes area or the **TAP** button, or 
 
 In both styles, `Backspace` steps back one chord and `Home` restarts.
 
-### 4K rhythm mode
+---
 
-Open any score (a demo, your library, a file or a search result) and pick **4K** in the top bar. PianoMan builds a four-lane map from it:
+## 4K Beats
 
-- **Onsets are picked by musical weight.** Downbeats, beats, accents, chords and long notes come first, and each difficulty keeps a minimum gap between notes. Dense passages are therefore thinned out on the beat instead of at random. **Easy** is one note at a time. **Normal**, **Hard** and **Expert** add jumps on strong beats, faster streams and shorter holds.
-- **Lanes follow the melody.** Higher notes sit further right, rising lines move right and falling lines move left, and repeated notes stay in their lane unless that would make an unplayable jack.
-- **Long notes become holds.** You can turn holds off.
-- **Map from**: both hands, or the melody (right hand) only.
+Choose **4K Beats** on the start screen. The main menu leads to **Play** (song select), **Create** (the map editor), **Import** and **Settings**. The first time, the bundled piano demos are added with ready-made maps, so there is something to play offline.
 
-Every map note carries the piano notes it stands for. Hit it and they play, lined up with the accompaniment, which plays by itself. Miss it and that note stays silent. An early hit still sounds on the beat.
+### Adding songs
 
-| Judgement | Window | Accuracy |
+**Import** (or drop files anywhere in the 4K area) has four tabs:
+
+| Source | What happens |
+| --- | --- |
+| **YouTube & links** | Search YouTube, or paste a YouTube, SoundCloud, Bandcamp or direct media link. The audio (and, if you like, the video for the background, up to the quality you choose) is downloaded with [yt-dlp](https://github.com/yt-dlp/yt-dlp). PIANO-BEATS downloads yt-dlp itself the first time (about 40 MB), keeps it up to date from *Settings → Library*, and uses its own Electron runtime for YouTube's JavaScript checks, so nothing else has to be installed. Title and artist come from the video ("Artist – Title (Official Video)" is cleaned up). |
+| **Audio / video file** | MP3, OGG, Opus, WAV, FLAC, M4A, or an MP4/WebM/MOV video (its audio is used and the video plays in the background). Title, artist, album and cover art are read from ID3, FLAC and MP4 tags. |
+| **osu! beatmap** | An .osz (every difficulty) or .osu file. 4K osu!mania maps play exactly as mapped. Other key counts are folded onto four lanes, and osu!standard, taiko and catch maps are converted: lanes from position or drum colour, sliders and spinners become holds. The background image, background video and keysounds or custom hitsounds come along. You can also open .osz files with PIANO-BEATS from your file manager. |
+| **Piano score** | Search the classical catalogue and online sources, pick from your piano library, or open a MusicXML/MXL/MIDI/ABC file. Score songs are played on the piano: each note you hit plays the melody notes it stands for, and the accompaniment plays along. |
+
+New songs are analysed and get maps straight away (Easy, Normal and Hard by default; choose which in the dialog). You can go straight into the editor afterwards (*Settings → Library*).
+
+**Cover art** for the record player comes from the video's YouTube thumbnail, the file's embedded picture or the beatmap's background. If there is none, PIANO-BEATS searches Google Images for the artist and title and uses the first image, falling back to iTunes and Deezer album art. You can also pick an image yourself in the editor.
+
+### How maps are made
+
+The audio is resampled to 22 kHz and analysed in a background worker:
+
+- **Onsets:** log-compressed spectral flux in four frequency bands, peak-picked against an adaptive threshold, with sub-frame timing. On test material, detected hits are within about 2 ms of the real ones.
+- **Tempo and beat grid:** autocorrelation of the onset envelope with a prior around 120 BPM, then a comb fit over the whole song for the exact BPM and phase. The downbeat is taken from the low band.
+- For each onset, its strength in the bass, mid and high bands, its brightness (used as the "pitch" that lanes follow) and how long it sustains.
+
+The generator then snaps onsets to the beat grid, picks the strongest ones while keeping the density you asked for (quiet passages get sparser with *dynamics*), assigns lanes with the chosen pattern (following the melody's contour, and avoiding jacks that are too fast), adds chords on strong, thick moments and holds on long notes, and makes sure holds end before the next note in their lane. Piano scores use the same generator, driven by the score's notes, beats and velocities.
+
+### The map editor
+
+Open it with **Create** in the menu, **Edit** on the song screen (`Ctrl+E`) or **Edit map** on the results screen.
+
+- **Generate** – *simple*: pick Easy, Normal, Hard, Insane or Expert and press **Generate map**. *Advanced*: density (notes per second), snap (off, 1/1–1/8), chords and largest chord, holds and shortest hold, fastest repeat in a lane, pattern style (flow, stairs, trills, jumps, random), how closely lanes follow the pitch, sensitivity, what to listen to (everything, drums, melody, bass) or which hands (scores), dynamics, mirror and a variation seed. **Only the selection** regenerates just the selected part.
+- **Timeline** – the song's colour-coded waveform (or piano roll for scores) beside the four lanes, with bar, beat and snap lines coloured by division. Tools: **Select** (click, Shift-click, box-select, drag to move in time and across lanes), **Note** (click a lane) and **Hold** (drag). Right-click deletes. `Ctrl+C`/`X`/`V` copy, cut and paste at the playhead; `H` mirrors; `Ctrl+Z`/`Y` undo and redo. While the song plays, the lane keys (`D F J K` by default) place notes at the playhead, so you can map by playing along. Playback speed 25–100 %, tick sounds on notes, metronome, zoom, and a minimap of the whole song.
+- **Details** – the song's title, artist, tags, cover, background video (and its offset) and preview point; the difficulty's name, mapper, description, star rating (estimated or set by hand), OD and HP.
+- **Timing** – BPM, offset and beats per bar, the detected values, tap tempo, ×2/÷2, extra timing points, and "snap all notes to the grid".
+- **Tools** – statistics, mirror all, holds to taps, shift every note, clear.
+- **Test play** (`F5`) starts the map from the cursor and comes back to the same spot. **Save** with `Ctrl+S`; **New** and **Duplicate** add difficulties.
+
+### Song select and the record player
+
+The song list can be searched (just start typing), sorted (newest, title, artist, difficulty, length, most played) and filtered by source. The selected song shows its difficulties with star ratings and your grades, and your five best plays of the selected map.
+
+The record player spins the song's preview (the loudest part of the song, or the preview point you set) with the cover as its label. **Grab the record and move it to scratch**: the audio follows your hand, backwards too, with needle noise when you move it fast. Let go and the motor brings it back up to speed. The buttons start and stop the motor and switch between 33⅓ and 45 rpm. The background takes on the colours of the cover.
+
+Keys: `↑`/`↓` song, `←`/`→` difficulty, `Enter` play, `F1` mods, `F2` random, `F3` settings, `Ctrl+E` edit, `Del` delete.
+
+**Export** saves the song's difficulties as an osu!mania 4K .osz: the audio as MP3 (score songs are rendered on the piano first), the cover as background, the video if you want, and keysounds. Tick *Open it with osu! afterwards* to import it into osu! straight away.
+
+### Playing
+
+`A S D F` by default, plus the arrow keys as alternates. MIDI keyboards (any four neighbouring white keys, or C D E F) and touch or mouse on the lanes work too.
+
+| Judgement | Window (normal) | Accuracy |
 | --- | --- | --- |
 | Perfect | ±25 ms | 100 % |
 | Excellent | ±50 ms | 90 % |
 | Good | ±90 ms | 65 % |
 | Bad | ±135 ms | 30 % |
-| Miss | later than 135 ms, or not hit | 0 % |
+| Miss | later, or not hit | 0 % |
 
-The windows are in real time, so they stay the same at any song speed. The score grows with your combo. Grades are **SS** (all Perfect), **S** (95 % or more with no misses), **A** (90 %), **B** (80 %), **C** (70 %) and **D**, or **F** if you fail with *Fail at zero health* on. Your best score for each song and difficulty is saved.
+Windows are in real time, so they stay the same at any speed. They can be lenient (×1.35), strict (×0.7) or use the map's osu!mania OD. The results show the grade (SS for all perfect, then S, A, B, C, D, or F for failing), score, accuracy, max combo, unstable rate, mean error, early/late counts, a timing graph over the song and a histogram of hit errors.
 
-On the song screen you can choose:
+During play: `Esc` pauses (then `R` restart, `Q` quit), hold `` ` `` to restart instantly, `−`/`=` nudge this map's offset, and `Space` skips a long intro.
 
-- **Notes**: arrows (FNF) or bars (osu!mania).
-- **Scroll**: upscroll or downscroll, and scroll speed.
-- **Song speed**: 0.5× to 1.5×.
-- **Keys**: `A S D F` by default. Click a key to rebind it, or pick a preset: `D F J K`, the arrow keys, or `Z X , .`.
-- **Offset**: raise it if you tend to hit late.
-- **Options**: hold notes, a miss sound, and failing at zero health.
+**Mods** (`F1`): song speed 0.5–2× (with or without keeping the pitch), mirror, random lanes, no holds, hidden, fade in, auto (watch it play), and health: normal, no fail, sudden death or perfect only.
 
-`Enter` starts or retries, and `Esc` pauses (then `R` restarts and `Q` quits). A MIDI keyboard works too: any four neighbouring white keys map onto the lanes, and you can also tap the lanes on a touch screen.
+**Settings** (`F3`, or from the menu or the pause screen):
+
+- *Gameplay*: scroll speed and direction (downscroll like osu! or upscroll like FNF), note skin (arrows, bars, circles, diamonds), note colours (by lane, by beat snap, or one colour) and palette, hit position, lane width, lane cover, timing windows, health, audio offset with a tap calibration, countdown, skipping intros, pausing when the window loses focus, keeping the pitch.
+- *Display*: background dim and blur, background video, lane darkness, and each part of the HUD (judgements and their position, early/late, combo, hit error bar, key overlay, score, health, progress, notes per second, FPS), hit lighting, particles, bar lines, shake on miss.
+- *Audio*: master, music, hitsound, keysound and effect volumes; hitsound (none, soft, tick, clap, kick, drum or piano); keysounds of osu! maps; miss sound; menu music; previews; record crackle.
+- *Input*: lane keys and presets, alternate keys, quick-retry key and hold time, offset keys, MIDI mapping, touch.
+- *Library*: your mapper name, background video downloads and quality, yt-dlp version and update, the songs folder.
+- *Interface*: accent colour, menu visualizer, reduced motion, reset.
 
 ---
 
@@ -189,18 +248,25 @@ On the song screen you can choose:
 | --- | --- |
 | Downloaded samples, scores and search cache | `<userData>/cache` (open it from *Help → Open Sample Cache Folder*; clear it in settings) |
 | Library | `<userData>/library` |
-| Settings & presets | Browser storage inside the app profile |
+| 4K songs and maps | `<userData>/beats/songs/<song>/`: `song.json`, `maps/*.json`, the audio, video, cover and keysounds (open it from *4K Settings → Library*) |
+| yt-dlp | `<userData>/bin` |
+| Settings, presets, 4K scores and offsets | Browser storage inside the app profile |
 
-`<userData>` is `%APPDATA%\PianoMan` on Windows, `~/Library/Application Support/PianoMan` on macOS and `~/.config/PianoMan` on Linux.
+`<userData>` is `%APPDATA%\PIANO-BEATS` on Windows, `~/Library/Application Support/PIANO-BEATS` on macOS and `~/.config/PIANO-BEATS` on Linux. An existing `PianoMan` folder from before the rename is moved there on first start, so downloads, library and settings are kept.
 
 ## Project layout
 
 ```
 electron/          main process (window, app:// protocol, cached network fetch, dialogs, library) + preload
+electron/beats.cjs 4K song library on disk, media:// protocol with range requests, yt-dlp install/search/download
 src/audio/         sound engine, instruments, presets, sample loader, tuning, reverb, synth voices, metronome, recorder
 src/score/         score model, MusicXML / MXL / MIDI / ABC importers, notation generator
 src/player/        autoplayer and clicker mode
-src/game/          4K rhythm mode: chart generator, judgement and scoring, play session, game view
+src/game/          judgements, scoring and the play session (shared by the 4K game)
+src/beats/         4K Beats: data model, store, osu! reader/writer, map generator, tags, web lookups (YouTube, covers)
+src/beats/audio/   analysis & time-stretch worker (dsp.ts), offline piano renderer, mixer/clock/record-player deck, scratch worklet
+src/beats/ui/      4K screens: menu, song select + record player, import, gameplay, results, editor, settings
+src/launcher.ts    start screen; src/shell.ts switches between the two areas
 src/search/        search providers and the bundled score index
 src/ui/            keyboard, falling notes, sheet view, panels, transport, controls
 scripts/           instrument-table, score-index and demo generators; dev launcher
@@ -222,7 +288,10 @@ PIANOMAN_CORPUS=/path/to/scores npx vitest run test/corpus.test.ts   # parse a f
 - **No sound:** click the window once, because some systems only start audio after an interaction. Also check the output level meter in the top bar.
 - **Instrument shows "Offline fallback":** the sample hosts (`*.github.io`, `raw.githubusercontent.com`) were unreachable. Samples that were already downloaded keep working. Otherwise the synth piano plays until you reconnect; then press **Reload**.
 - **MIDI keyboard not listed:** connect it and wait a second, since devices are detected while the app runs. On Linux, your user needs access to ALSA MIDI.
-- **Linux AppImage:** run `chmod +x PianoMan-*.AppImage` first.
+- **Linux AppImage:** run `chmod +x PIANO-BEATS-*.AppImage` first.
+- **YouTube downloads fail:** YouTube changes often; press *Update* next to yt-dlp in *4K Settings → Library*. Downloads need yt-dlp's GitHub releases and the video site to be reachable.
+- **Notes feel early or late:** use *Calibrate* next to *Audio offset* (4K settings), or nudge a single map with `−`/`=` while playing.
+- **No cover art:** the lookups need Google, iTunes or Deezer to be reachable; you can always choose an image in the editor's *Details* tab.
 
 ## Credits
 
@@ -236,6 +305,8 @@ Instrument samples (streamed at runtime, not bundled):
 
 Scores come from the [ASAP dataset](https://github.com/fosfrancesco/asap-dataset) (CC BY-NC-SA 4.0), the [music21 corpus](https://github.com/cuthbertLab/music21), [BitMidi](https://bitmidi.com), the [Mutopia Project](https://www.mutopiaproject.org) and [The Session](https://thesession.org), and belong to their respective sources.
 
-Libraries: [OpenSheetMusicDisplay](https://opensheetmusicdisplay.org) & VexFlow, [abcjs](https://abcjs.net), [@tonejs/midi](https://github.com/Tonejs/Midi), [fflate](https://github.com/101arrowz/fflate) and [Electron](https://electronjs.org).
+Libraries: [OpenSheetMusicDisplay](https://opensheetmusicdisplay.org) & VexFlow, [abcjs](https://abcjs.net), [@tonejs/midi](https://github.com/Tonejs/Midi), [fflate](https://github.com/101arrowz/fflate), [lamejs](https://github.com/zhuker/lamejs) (LGPL-3.0, loaded as a separate, replaceable file for MP3 export), the [Outfit](https://fonts.google.com/specimen/Outfit) typeface (OFL) and [Electron](https://electronjs.org). YouTube and other downloads use [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense), fetched at runtime. osu! is a trademark of ppy Pty Ltd; PIANO-BEATS reads and writes its open beatmap format and is not affiliated with it.
 
-PianoMan itself is MIT licensed.
+Only download media you have the right to use.
+
+PIANO-BEATS itself is MIT licensed.

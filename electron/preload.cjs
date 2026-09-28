@@ -2,7 +2,7 @@
 // Electron is reachable from the page.
 'use strict';
 
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 const listen = (channel) => (callback) => {
   const handler = (_event, payload) => callback(payload);
@@ -31,4 +31,42 @@ contextBridge.exposeInMainWorld('pianoman', {
   openCacheFolder: () => ipcRenderer.invoke('shell:openCacheFolder'),
   onMenu: listen('menu'),
   onOpenFile: listen('open-file'),
+  onOpenBeatmap: listen('open-beatmap'),
+  pendingBeatmaps: () => ipcRenderer.invoke('app:pendingBeatmaps'),
+  /** Absolute path of a dropped file (Electron no longer exposes File.path). */
+  pathForFile: (file) => {
+    try {
+      return webUtils.getPathForFile(file) || null;
+    } catch {
+      return null;
+    }
+  },
+  beats: {
+    list: () => ipcRenderer.invoke('beats:list'),
+    dir: () => ipcRenderer.invoke('beats:dir'),
+    saveSong: (meta) => ipcRenderer.invoke('beats:saveSong', meta),
+    deleteSong: (id) => ipcRenderer.invoke('beats:deleteSong', id),
+    writeFile: (song, name, data) => ipcRenderer.invoke('beats:writeFile', { song, name, data }),
+    readFile: (song, name) => ipcRenderer.invoke('beats:readFile', { song, name }),
+    hasFile: (song, name) => ipcRenderer.invoke('beats:hasFile', { song, name }),
+    removeFile: (song, name) => ipcRenderer.invoke('beats:removeFile', { song, name }),
+    copyIn: (song, src, name) => ipcRenderer.invoke('beats:copyIn', { song, src, name }),
+    saveMap: (song, map, summary) => ipcRenderer.invoke('beats:saveMap', { song, map, summary }),
+    loadMap: (song, map) => ipcRenderer.invoke('beats:loadMap', { song, map }),
+    deleteMap: (song, map) => ipcRenderer.invoke('beats:deleteMap', { song, map }),
+    pickFiles: (opts) => ipcRenderer.invoke('beats:pickFiles', opts),
+    readPath: (p) => ipcRenderer.invoke('beats:readPath', p),
+    statPath: (p) => ipcRenderer.invoke('beats:statPath', p),
+    openPath: (p) => ipcRenderer.invoke('beats:openPath', p),
+    showItem: (p) => ipcRenderer.invoke('beats:showItem', p),
+    openSongFolder: (id) => ipcRenderer.invoke('beats:openSongFolder', id),
+  },
+  yt: {
+    status: () => ipcRenderer.invoke('yt:status'),
+    install: () => ipcRenderer.invoke('yt:install'),
+    search: (query, limit) => ipcRenderer.invoke('yt:search', { query, limit }),
+    download: (opts) => ipcRenderer.invoke('yt:download', opts),
+    cancel: (job) => ipcRenderer.invoke('yt:cancel', job),
+    onProgress: listen('yt:progress'),
+  },
 });

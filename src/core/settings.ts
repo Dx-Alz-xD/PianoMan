@@ -256,21 +256,7 @@ export const PARAMS: ParamDef[] = [
 // ------------------------------------------------------------ app state ----
 
 export type ViewMode = 'notes' | 'sheet' | 'split';
-export type AppMode = 'play' | 'autoplay' | 'clicker' | 'game';
-
-export interface GameSettings {
-  difficulty: 'easy' | 'normal' | 'hard' | 'expert';
-  source: 'melody' | 'both';
-  skin: 'arrows' | 'bars';
-  scroll: 'up' | 'down';
-  scrollSpeed: number;
-  speed: number;
-  keys: string[];
-  offset: number;
-  holds: boolean;
-  missSound: boolean;
-  fail: boolean;
-}
+export type AppMode = 'play' | 'autoplay' | 'clicker';
 
 export interface AppSettings {
   presetId: string;
@@ -311,7 +297,6 @@ export interface AppSettings {
     accompany: boolean;
   };
   panels: { settings: boolean; library: boolean; libraryTab: 'library' | 'search' | 'info'; keyboard: boolean; drawer: boolean; focus: boolean };
-  game: GameSettings;
   settingsSections: Partial<Record<SectionId, boolean>>;
 }
 
@@ -329,19 +314,6 @@ export const DEFAULT_APP: AppSettings = {
   player: { speed: 1, countIn: false, handL: true, handR: true, followScore: true, velocityScale: 1, applyPedal: true, waitMode: false, loop: false, humanize: 0 },
   clicker: { style: 'flow', target: 'both', duration: 'natural', velocity: 'score', fixedVelocity: 90, allowRepeat: false, accompany: true },
   panels: { settings: false, library: false, libraryTab: 'library', keyboard: true, drawer: false, focus: false },
-  game: {
-    difficulty: 'normal',
-    source: 'both',
-    skin: 'arrows',
-    scroll: 'up',
-    scrollSpeed: 2,
-    speed: 1,
-    keys: ['KeyA', 'KeyS', 'KeyD', 'KeyF'],
-    offset: 0,
-    holds: true,
-    missSound: true,
-    fail: false,
-  },
   settingsSections: { output: true, touch: true },
 };
 
@@ -379,7 +351,16 @@ function write(key: string, value: unknown) {
 }
 
 export function loadAppSettings(): AppSettings {
-  return deepMerge(structuredClone(DEFAULT_APP), read(APP_KEY));
+  const app = deepMerge(structuredClone(DEFAULT_APP), read(APP_KEY));
+  // The 4K game used to be a mode of the piano; it now has its own area.
+  if (!['play', 'autoplay', 'clicker'].includes(app.mode)) app.mode = 'play';
+  return app;
+}
+
+/** Settings of the old in-piano 4K mode, used once to seed the 4K area's settings. */
+export function readLegacyGameSettings(): Record<string, unknown> | null {
+  const raw = read(APP_KEY) as { game?: Record<string, unknown> } | null;
+  return raw && raw.game && typeof raw.game === 'object' ? raw.game : null;
 }
 export function saveAppSettings(s: AppSettings) {
   write(APP_KEY, s);

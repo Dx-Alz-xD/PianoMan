@@ -154,7 +154,7 @@ export const INSTRUMENTS: Instrument[] = [
   // Grand pianos
   {
     kind: 'sampled', id: 'splendid-grand', name: 'Splendid Grand (Steinway D)', category: 'Grand pianos', piano: true,
-    description: 'Steinway concert grand with four velocity layers. The richest acoustic piano in PianoMan.',
+    description: 'Steinway concert grand with four velocity layers. The richest acoustic piano in PIANO-BEATS.',
     credit: 'AKAI sample set, SFZ mapping by kinwie, hosted by smpldsnds', license: 'Public domain',
     homepage: 'https://github.com/sfzinstruments/SplendidGrandPiano',
     hosts: PAGES_SPLENDID, ext: 'ogg', sizeHint: '≈ 30 MB', veltrack: 0.55, regions: () => sfzRegions('splendid-grand'),
@@ -329,15 +329,15 @@ export const INSTRUMENTS: Instrument[] = [
   // Offline
   {
     kind: 'synth', id: 'synth-piano', name: 'Synth Piano', category: 'Offline (synthesized)', piano: true, engine: 'piano',
-    description: 'Generated on the fly – works without an internet connection.', credit: 'PianoMan', license: 'MIT',
+    description: 'Generated on the fly – works without an internet connection.', credit: 'PIANO-BEATS', license: 'MIT',
   },
   {
     kind: 'synth', id: 'synth-epiano', name: 'FM Tine Piano', category: 'Offline (synthesized)', piano: false, engine: 'epiano',
-    description: 'Two-operator FM electric piano, generated on the fly.', credit: 'PianoMan', license: 'MIT',
+    description: 'Two-operator FM electric piano, generated on the fly.', credit: 'PIANO-BEATS', license: 'MIT',
   },
   {
     kind: 'synth', id: 'synth-organ', name: 'Drawbar Organ', category: 'Offline (synthesized)', piano: false, engine: 'organ', sustaining: true,
-    description: 'Tonewheel-style drawbar organ, generated on the fly.', credit: 'PianoMan', license: 'MIT',
+    description: 'Tonewheel-style drawbar organ, generated on the fly.', credit: 'PIANO-BEATS', license: 'MIT',
   },
 ];
 

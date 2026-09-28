@@ -370,7 +370,7 @@ export function generateMusicXml(input: NotationInput): NotationResult {
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">\n` +
     `<score-partwise version="3.1"><work><work-title>${esc(input.title)}</work-title></work>` +
-    `<identification>${input.composer ? `<creator type="composer">${esc(input.composer)}</creator>` : ''}<encoding><software>PianoMan</software></encoding></identification>` +
+    `<identification>${input.composer ? `<creator type="composer">${esc(input.composer)}</creator>` : ''}<encoding><software>PIANO-BEATS</software></encoding></identification>` +
     `<part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>` +
     `<part id="P1">\n${body}\n</part></score-partwise>`;
   return { xml, positions, keyFifths };

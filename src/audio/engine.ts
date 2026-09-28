@@ -1,4 +1,4 @@
-// The PianoMan sound engine: voice allocation, velocity layers, pedals,
+// The PIANO-BEATS sound engine: voice allocation, velocity layers, pedals,
 // damper behaviour, tuning and the master effects chain.
 //
 // Signal flow
@@ -113,10 +113,20 @@ export class PianoEngine extends Emitter<EngineEvents> {
   private reverbTimer = 0;
   private meterBuf = new Float32Array(1024);
 
-  constructor(latencyHint: AudioContextLatencyCategory = 'interactive') {
+  /**
+   * Pass a latency hint for the live engine, or an (offline) context plus the
+   * live engine's sample store to render a performance faster than real time.
+   */
+  constructor(opts: AudioContextLatencyCategory | { context: BaseAudioContext; store: SampleStore } = 'interactive') {
     super();
-    this.ctx = new AudioContext({ latencyHint });
-    this.store = new SampleStore(this.ctx);
+    if (typeof opts === 'string') {
+      this.ctx = new AudioContext({ latencyHint: opts });
+      this.store = new SampleStore(this.ctx);
+    } else {
+      // Offline rendering: only the scheduling API of AudioContext is used.
+      this.ctx = opts.context as AudioContext;
+      this.store = opts.store;
+    }
     this.analyser = this.ctx.createAnalyser();
     this.analyser.fftSize = 1024;
     this.clickBus = this.ctx.createGain();
@@ -385,6 +395,17 @@ export class PianoEngine extends Emitter<EngineEvents> {
       if (!this.trimMeasured) this.measureTrim(inst);
       this.emit('ready', { id: inst.id, loaded: result.loaded, failed: result.failed });
     }
+  }
+
+  /** Copies the instrument, loudness trim and sound settings of another engine (whose samples this one shares). */
+  copyFrom(other: PianoEngine) {
+    this.quality = other.quality;
+    this.instrument = other.instrument;
+    this.buildIndexes(other.instrument);
+    this.trim = other.trim;
+    this.trimMeasured = true;
+    this.reverbKey = '';
+    this.applySettings({ ...other.settings }, true);
   }
 
   private buildIndexes(inst: Instrument) {

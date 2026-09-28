@@ -1,7 +1,6 @@
-// PianoMan application: wires inputs, the sound engine, the players and the UI.
+// PIANO-BEATS application: wires inputs, the sound engine, the players and the UI.
 
 import { PianoEngine } from './audio/engine';
-import { GameView } from './game/gameView';
 import { getInstrument, INSTRUMENTS } from './audio/instruments';
 import { Metronome } from './audio/metronome';
 import { FACTORY_PRESETS, getFactoryPreset, presetSound } from './audio/presets';
@@ -49,7 +48,7 @@ export class App {
   private sound: SoundSettings;
   private presetBase: SoundSettings;
   private userPresets: UserPreset[];
-  private engine: PianoEngine;
+  readonly engine: PianoEngine;
   private metronome: Metronome;
   private player: AutoPlayer;
   private clicker: Clicker;
@@ -77,7 +76,6 @@ export class App {
   private metroBtn!: HTMLButtonElement;
   private meterFill!: HTMLElement;
   private status: Record<string, HTMLElement> = {};
-  private game!: GameView;
   private railBtns: Record<string, HTMLButtonElement> = {};
   private kbdWrap!: HTMLElement;
   private kbdToggle!: HTMLButtonElement;
@@ -93,6 +91,15 @@ export class App {
   private clickerDisplay = 0;
   private saveTimer = 0;
   private lastNoteIdx = -1;
+
+  /** False while another area (the launcher or 4K Beats) is on screen: keys and MIDI are not for the piano then. */
+  active = true;
+  /** Called by the Home button. */
+  onHome: (() => void) | null = null;
+  /** MIDI notes that arrive while the piano is not active. */
+  midiElsewhere: ((midi: number, velocity: number, down: boolean) => void) | null = null;
+  /** Called once the loading screen has gone. */
+  onSplashDone: (() => void) | null = null;
 
   constructor(root: HTMLElement) {
     this.root = root;
@@ -216,7 +223,6 @@ export class App {
         { value: 'play', label: 'Free play', icon: icon('piano', 16), title: 'Play the piano yourself' },
         { value: 'autoplay', label: 'Autoplay', icon: icon('play', 16), title: 'The piano plays the score for you' },
         { value: 'clicker', label: 'Clicker', icon: icon('pointer', 16), title: 'Every key press or click moves the score on' },
-        { value: 'game', label: '4K', icon: icon('keyboard', 16), title: '4-key rhythm game made from any score' },
       ],
       onChange: (m) => this.setMode(m),
       cls: 'mode-tabs',
@@ -239,7 +245,10 @@ export class App {
     this.meterFill = h('div', { class: 'meter-fill' });
     this.focusBtn = h('button', { class: 'tool-btn', title: 'Focus: collapse everything except the music (Ctrl+.)', onclick: () => this.toggleFocus() }, icon('eye', 17));
     const header = h('header', { class: 'topbar' },
-      h('div', { class: 'brand' }, h('span', { class: 'brand-mark' }, icon('piano', 20)), h('span', { class: 'brand-name' }, 'Piano', h('b', null, 'Man'))),
+      h('button', { class: 'brand', title: 'Home – switch between Piano and 4K Beats', onclick: () => this.onHome?.() },
+        h('span', { class: 'brand-mark' }, icon('home', 18)),
+        h('span', { class: 'brand-name' }, 'PIANO', h('i', null, '-'), h('b', null, 'BEATS')),
+      ),
       this.modeTabs.el,
       this.titleEl,
       h('div', { class: 'spacer' }),
@@ -265,12 +274,7 @@ export class App {
       railBtn('settings', 'sliders', 'Sound settings (Ctrl+,)', () => this.togglePanel('settings')),
     );
 
-    this.game = new GameView(this.engine, this.player, this.app.game, {
-      optionsChanged: () => this.saveApp(),
-      openLibrary: () => this.showPanel('library', 'library'),
-      openSearch: () => this.showPanel('library', 'search'),
-    });
-    this.viewport = h('div', { class: 'viewport' }, this.sheet.el, this.falling.el, this.game.el);
+    this.viewport = h('div', { class: 'viewport' }, this.sheet.el, this.falling.el);
     this.falling.el.addEventListener('pointerdown', (e) => {
       if (this.app.mode !== 'clicker') return;
       e.preventDefault();
@@ -335,6 +339,16 @@ export class App {
     for (const id of ['library', 'search', 'info']) this.railBtns[id]?.classList.toggle('active', p.library && p.libraryTab === id);
     this.railBtns.settings?.classList.toggle('active', p.settings);
     this.refreshGeometrySoon();
+  }
+
+  get metronomeRef(): Metronome {
+    return this.metronome;
+  }
+
+  /** The piano area became visible again: re-measure what depends on layout. */
+  shown() {
+    this.refreshGeometrySoon();
+    void this.engine.resume();
   }
 
   private refreshGeometrySoon() {
@@ -444,12 +458,12 @@ export class App {
     const systemSection = h('details', { class: 'section' },
       h('summary', null, h('span', { class: 'section-icon' }, '⚙️'), 'Audio device & storage', icon('chevron', 16)),
       h('div', { class: 'section-body' },
-        select({ label: 'Audio latency', value: a.latency, help: 'Lower latency feels more responsive; higher is more robust on slow machines. Applies after restarting PianoMan.', options: [
+        select({ label: 'Audio latency', value: a.latency, help: 'Lower latency feels more responsive; higher is more robust on slow machines. Applies after restarting PIANO-BEATS.', options: [
           { value: 'interactive', label: 'Lowest (interactive)' }, { value: 'balanced', label: 'Balanced' }, { value: 'playback', label: 'Safe (playback)' },
         ], onChange: (v) => {
           a.latency = v as AppSettings['latency'];
           this.saveApp();
-          toast('Latency setting will apply the next time PianoMan starts.');
+          toast('Latency setting will apply the next time PIANO-BEATS starts.');
         } }).el,
         h('div', { class: 'ctl' }, h('span', { class: 'ctl-label' }, 'Downloaded samples & scores'), cacheInfo),
         h('div', { class: 'btn-row' },
@@ -550,7 +564,6 @@ export class App {
     p.setGate(null);
     if (prev === 'autoplay' && mode !== 'autoplay') p.pause();
     if (prev === 'clicker' || mode === 'clicker') p.stop();
-    this.game.setVisible(mode === 'game');
     if (!(mode === 'clicker' && this.app.clicker.style === 'tap')) this.clicker.stop();
     // The autoplayer's own options apply in autoplay; flow mode always plays everything as written.
     if (mode === 'autoplay') {
@@ -573,11 +586,10 @@ export class App {
       this.clicker.start();
       this.clicker.reset();
     }
-    if (mode === 'game') this.game.load(this.score);
     this.keyboard.setAuto([]);
     this.keyboard.setHints([]);
-    this.falling.setScore(mode === 'play' || mode === 'game' ? null : this.score);
-    this.falling.setVisible(mode !== 'game' && this.app.view !== 'sheet');
+    this.falling.setScore(mode === 'play' ? null : this.score);
+    this.falling.setVisible(this.app.view !== 'sheet');
     this.falling.setEmptyHint(
       mode === 'play'
         ? 'Play with your computer keyboard (Z–M and Q–P rows), the mouse, or a MIDI keyboard.\nSpace = sustain pedal · ← → change octave'
@@ -593,7 +605,7 @@ export class App {
     this.transport.setMode(mode, !!this.score);
     this.root.dataset.mode = mode;
     if (save) this.saveApp();
-    if (mode !== 'play' && mode !== 'game' && !this.score) {
+    if (mode !== 'play' && !this.score) {
       this.showPanel('library', this.app.panels.libraryTab === 'info' ? 'library' : this.app.panels.libraryTab);
     }
     this.refreshGeometrySoon();
@@ -641,7 +653,7 @@ export class App {
     this.app.view = view;
     this.viewTabs.set(view);
     this.viewport.dataset.view = view;
-    this.falling.setVisible(view !== 'sheet' && this.app.mode !== 'game');
+    this.falling.setVisible(view !== 'sheet');
     if (view !== 'notes') void this.ensureSheet();
     this.saveApp();
     window.setTimeout(() => this.falling.setGeometry(this.keyboard.geometry()), 50);
@@ -770,7 +782,7 @@ export class App {
   }
 
   private onKeyDown(e: KeyboardEvent) {
-    if (this.isTyping(e) || document.querySelector('.modal-backdrop')) return;
+    if (!this.active || this.isTyping(e) || document.querySelector('.modal-backdrop')) return;
     const mod = e.ctrlKey || e.metaKey;
     if (mod) {
       if (e.key === '1') this.setView('notes');
@@ -790,9 +802,6 @@ export class App {
       this.showHelp();
       return;
     }
-    if (this.app.mode === 'game') {
-      if (this.game.keyDown(e)) return;
-    }
     if (e.code === 'Escape') {
       this.player.pause();
       this.engine.panic();
@@ -802,7 +811,6 @@ export class App {
     }
     const mode = this.app.mode;
 
-    if (mode === 'game') return;
     if (mode === 'clicker') {
       if (e.code === 'Backspace') {
         e.preventDefault();
@@ -866,11 +874,8 @@ export class App {
   }
 
   private onKeyUp(e: KeyboardEvent) {
+    if (!this.active) return;
     const mode = this.app.mode;
-    if (mode === 'game') {
-      this.game.keyUp(e);
-      return;
-    }
     if (mode === 'clicker') {
       if (this.pressedCodes.has(e.code)) {
         this.pressedCodes.delete(e.code);
@@ -891,8 +896,8 @@ export class App {
   }
 
   private userNoteOn(midi: number, velocity: number, source: string) {
-    if (this.app.mode === 'game') {
-      this.game.midiNote(midi, true);
+    if (!this.active) {
+      if (source.startsWith('midi:')) this.midiElsewhere?.(midi, velocity, true);
       return;
     }
     if (this.app.mode === 'clicker') {
@@ -907,8 +912,8 @@ export class App {
   }
 
   private userNoteOff(midi: number, source: string) {
-    if (this.app.mode === 'game') {
-      this.game.midiNote(midi, false);
+    if (!this.active) {
+      if (source.startsWith('midi:')) this.midiElsewhere?.(midi, 0, false);
       return;
     }
     if (this.app.mode === 'clicker') {
@@ -942,13 +947,17 @@ export class App {
     if (this.splashDone) return;
     this.splashDone = true;
     const el = document.getElementById('splash');
-    if (!el) return;
-    const wait = Math.max(0, 800 - (performance.now() - this.splashStart));
+    if (!el) {
+      this.onSplashDone?.();
+      return;
+    }
+    const wait = Math.max(0, 1200 - (performance.now() - this.splashStart));
     window.setTimeout(() => {
       const fill = document.getElementById('splash-fill');
       if (fill) fill.style.width = '100%';
       el.classList.add('done');
-      window.setTimeout(() => el.remove(), 600);
+      this.onSplashDone?.();
+      window.setTimeout(() => el.remove(), 700);
     }, wait);
   }
 
@@ -1056,9 +1065,9 @@ export class App {
   }
 
   private async exportPreset() {
-    const name = FACTORY_PRESETS.find((p) => p.id === this.app.presetId)?.name || this.userPresets.find((p) => p.id === this.app.presetId)?.name || 'PianoMan preset';
+    const name = FACTORY_PRESETS.find((p) => p.id === this.app.presetId)?.name || this.userPresets.find((p) => p.id === this.app.presetId)?.name || 'PIANO-BEATS preset';
     const json = JSON.stringify({ pianomanPreset: 1, name, sound: this.sound }, null, 2);
-    const path = await bridge.saveFile(`${name}.pianoman.json`, json, [{ name: 'PianoMan preset', extensions: ['json'] }]);
+    const path = await bridge.saveFile(`${name}.pianobeats.json`, json, [{ name: 'PIANO-BEATS preset', extensions: ['json'] }]);
     if (path) toast('Preset exported.', 'success');
   }
 
@@ -1067,7 +1076,7 @@ export class App {
     if (!file) return;
     try {
       const data = JSON.parse(new TextDecoder().decode(file.data));
-      if (!data || typeof data !== 'object' || !data.sound) throw new Error('Not a PianoMan preset file.');
+      if (!data || typeof data !== 'object' || !data.sound) throw new Error('Not a PIANO-BEATS preset file.');
       const preset: UserPreset = { id: `user-${uid()}`, name: String(data.name || file.name.replace(/\.json$/i, '')), sound: normalizeSound(data.sound), createdAt: new Date().toISOString() };
       this.userPresets.push(preset);
       saveUserPresets(this.userPresets);
@@ -1268,7 +1277,7 @@ export class App {
       return;
     }
     const data = s.format === 'recording' ? scoreToMidi(s) : new TextEncoder().encode(s.musicXml || ensureNotation(s));
-    const entry = await bridge.library.save({ title: s.title, composer: s.composer, format: s.format === 'recording' ? 'midi' : 'musicxml', fileName: `${s.title}.${s.format === 'recording' ? 'mid' : 'musicxml'}`, source: s.source || 'PianoMan' }, data);
+    const entry = await bridge.library.save({ title: s.title, composer: s.composer, format: s.format === 'recording' ? 'midi' : 'musicxml', fileName: `${s.title}.${s.format === 'recording' ? 'mid' : 'musicxml'}`, source: s.source || 'PIANO-BEATS' }, data);
     this.scoreLibraryId = entry.id;
     void this.refreshLibrary();
     if (explicit) toast('Saved to your library.', 'success');
@@ -1338,10 +1347,10 @@ export class App {
     }
     const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
     if (kind === 'midi') {
-      const p = await bridge.saveFile(`PianoMan ${stamp}.mid`, scoreToMidi(rec.score), [{ name: 'MIDI file', extensions: ['mid'] }]);
+      const p = await bridge.saveFile(`PIANO-BEATS ${stamp}.mid`, scoreToMidi(rec.score), [{ name: 'MIDI file', extensions: ['mid'] }]);
       if (p) toast('MIDI saved.', 'success');
     } else if (rec.wav) {
-      const p = await bridge.saveFile(`PianoMan ${stamp}.wav`, rec.wav, [{ name: 'WAV audio', extensions: ['wav'] }]);
+      const p = await bridge.saveFile(`PIANO-BEATS ${stamp}.wav`, rec.wav, [{ name: 'WAV audio', extensions: ['wav'] }]);
       if (p) toast('WAV saved.', 'success');
     } else toast('No audio was captured for this recording.', 'warn');
   }
@@ -1486,6 +1495,7 @@ export class App {
 
   private frame() {
     requestAnimationFrame(() => this.frame());
+    if (!this.active) return;
     const mode = this.app.mode;
     const s = this.score;
     let t = 0;
@@ -1509,7 +1519,7 @@ export class App {
       this.keyboard.setAuto(this.clicker.litNotes());
     }
     this.falling.getTime = () => t;
-    if (s && mode !== 'play' && mode !== 'game' && this.app.view !== 'notes' && this.sheet.isLoaded) {
+    if (s && mode !== 'play' && this.app.view !== 'notes' && this.sheet.isLoaded) {
       this.updateSheetCursor(mode === 'clicker' && !this.flow ? this.clicker.position + 1e-4 : t);
     }
   }
@@ -1572,11 +1582,9 @@ export class App {
             row('Backspace', 'One chord back'),
             row('Home', 'Back to the start'),
           ),
-          h('h3', null, '4K rhythm mode'),
+          h('h3', null, 'Anywhere'),
           h('table', { class: 'keys-table' },
-            row('A S D F', 'The four lanes (rebind them on the song screen)'),
-            row('Enter', 'Start / retry'),
-            row('Esc', 'Pause · R restart · Q quit'),
+            row('PIANO-BEATS', 'Click the logo to go back to the start screen (Piano or 4K Beats)'),
           ),
         ),
         h('div', null,
@@ -1609,8 +1617,8 @@ export class App {
   private async showAbout() {
     const info = await bridge.appInfo();
     const credits = INSTRUMENTS.filter((i) => i.kind === 'sampled').map((i) => h('li', null, h('b', null, i.name), ` – ${i.credit} (${i.license})`));
-    modal('About PianoMan', [
-      h('p', null, `PianoMan ${info.version}${info.electron ? ` · Electron ${info.electron}` : ''}`),
+    modal('About PIANO-BEATS', [
+      h('p', null, `PIANO-BEATS ${info.version}${info.electron ? ` · Electron ${info.electron}` : ''}`),
       h('p', null, 'A desktop piano with streamed sampled instruments, a full sound-design panel, a score autoplayer, sheet music and clicker mode.'),
       h('h3', null, 'Instrument samples'),
       h('ul', { class: 'credits' }, ...credits),

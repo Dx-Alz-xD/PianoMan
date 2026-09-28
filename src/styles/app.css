@@ -132,11 +132,36 @@ kbd {
 .brand {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
+  padding: 3px 10px 3px 3px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: none;
+  color: var(--text);
+  font-family: 'Outfit Variable', var(--font);
   font-size: 16px;
-  letter-spacing: 0.2px;
+  font-weight: 800;
+  letter-spacing: 1px;
   margin-right: 6px;
   white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.brand:hover {
+  background: var(--panel-2);
+  border-color: var(--border-2);
+}
+
+.brand-name i {
+  font-style: normal;
+  opacity: 0.45;
+}
+
+/* The piano area stays laid out while hidden, so nothing has to re-measure. */
+#app.area-hidden {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .brand-mark {
@@ -146,12 +171,15 @@ kbd {
   height: 30px;
   border-radius: 9px;
   color: #fff;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  box-shadow: 0 4px 14px rgba(140, 108, 255, 0.35);
+  background: linear-gradient(135deg, #ff3cac, #784ba0 55%, #2b86c5);
+  box-shadow: 0 4px 14px rgba(255, 60, 172, 0.35);
 }
 
 .brand-name b {
-  color: var(--accent);
+  background: linear-gradient(90deg, #ff3cac, var(--accent), #2bb3ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .spacer {
@@ -1911,457 +1939,6 @@ details.fold > summary {
   font-weight: 700;
   letter-spacing: 0.7px;
   text-transform: uppercase;
-}
-
-/* --------------------------------------------------------- 4K mode */
-
-.game {
-  position: relative;
-  display: none;
-  min-height: 0;
-  overflow: hidden;
-  background: radial-gradient(ellipse at 50% 100%, #1b1433 0%, #0a0b10 70%);
-  user-select: none;
-  touch-action: none;
-}
-
-[data-mode='game'] .viewport .game {
-  display: block;
-}
-
-[data-mode='game'] .viewport .falling,
-[data-mode='game'] .viewport .sheet,
-[data-mode='game'] .keyboard-wrap,
-[data-mode='game'] .view-tabs {
-  display: none !important;
-}
-
-[data-mode='game'] .viewport {
-  grid-template-rows: 1fr !important;
-}
-
-.game-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.game-hud {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.game.in-play .game-hud {
-  opacity: 1;
-}
-
-.hud-top {
-  position: absolute;
-  top: 10px;
-  left: 16px;
-  right: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: #cfd4e2;
-  font-size: 12px;
-}
-
-.hud-title {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 40%;
-}
-
-.hud-progress {
-  flex: 1;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.1);
-  overflow: hidden;
-}
-
-.hud-progress-fill {
-  height: 100%;
-  width: 0;
-  background: linear-gradient(90deg, #8c6cff, #26c6da);
-}
-
-.hud-left,
-.hud-right {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 150px;
-}
-
-.hud-left {
-  left: 22px;
-}
-
-.hud-right {
-  right: 22px;
-  text-align: right;
-}
-
-.hud-stat {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 5px 10px;
-  border-radius: 8px;
-  background: rgba(10, 12, 18, 0.55);
-  color: #9ca3b8;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
-.hud-stat b {
-  color: #fff;
-  font-size: 15px;
-  font-variant-numeric: tabular-nums;
-}
-
-.hud-perfect b { color: #7cf8ff; }
-.hud-excellent b { color: #8dff7a; }
-.hud-good b { color: #ffe066; }
-.hud-bad b { color: #ff9f43; }
-.hud-miss b,
-.hud-misses b { color: #ff4d6d; }
-
-.hud-score b {
-  font-size: 22px;
-}
-
-.hud-health {
-  position: absolute;
-  left: 50%;
-  bottom: 44px;
-  width: min(360px, 50%);
-  height: 10px;
-  transform: translateX(-50%);
-  border-radius: 5px;
-  background: rgba(255, 77, 109, 0.35);
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* Downscroll: keys at the bottom, so the health bar moves to the top (as in FNF). */
-.game.scroll-down .hud-health {
-  top: 34px;
-  bottom: auto;
-}
-
-.hud-health-fill {
-  height: 100%;
-  width: 50%;
-  background: linear-gradient(90deg, #66ff99, #12fa05);
-  transition: width 0.15s;
-}
-
-.hud-health-fill.low {
-  background: #ff4d6d;
-}
-
-.game-judgement,
-.game-combo {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  font-weight: 900;
-  letter-spacing: 2px;
-  text-shadow: 0 0 18px currentColor, 0 2px 0 rgba(0, 0, 0, 0.6);
-  white-space: nowrap;
-}
-
-.game-judgement {
-  top: 42%;
-  font-size: 34px;
-}
-
-.game-combo {
-  top: calc(42% + 46px);
-  color: #fff;
-  font-size: 26px;
-  opacity: 0.85;
-}
-
-.game-judgement.pop,
-.game-combo.pop {
-  animation: judge-pop 0.45s ease-out;
-}
-
-@keyframes judge-pop {
-  0% { transform: translateX(-50%) scale(1.35); opacity: 1; }
-  70% { transform: translateX(-50%) scale(1); opacity: 1; }
-  100% { transform: translateX(-50%) scale(1); opacity: 0.85; }
-}
-
-.game-overlay {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-  overflow-y: auto;
-  background: rgba(6, 7, 12, 0.55);
-  backdrop-filter: blur(3px);
-}
-
-.game-card {
-  width: min(720px, 100%);
-  padding: 20px 22px;
-  border: 1px solid var(--border-2);
-  border-radius: 16px;
-  background: var(--panel);
-  box-shadow: var(--shadow);
-}
-
-.game-card.small {
-  width: min(380px, 100%);
-  text-align: center;
-}
-
-.game-card h2 {
-  margin: 0 0 4px;
-  font-size: 20px;
-}
-
-.game-logo {
-  display: grid;
-  place-items: center;
-  width: 54px;
-  height: 54px;
-  flex: none;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #f9393f, #c24b99 40%, #00c3ff);
-  color: #fff;
-  font-size: 22px;
-  font-weight: 900;
-  box-shadow: 0 6px 20px rgba(194, 75, 153, 0.45);
-}
-
-.game-card > .game-logo {
-  margin: 0 auto 12px;
-}
-
-.select-head {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 14px;
-}
-
-.diff-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.diff-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  padding: 10px 12px;
-  border: 2px solid var(--border-2);
-  border-radius: 12px;
-  background: var(--panel-2);
-  color: var(--text);
-  text-align: left;
-}
-
-.diff-btn b {
-  font-size: 15px;
-}
-
-.diff-btn span {
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.diff-btn .best {
-  color: var(--accent-2);
-  font-weight: 600;
-}
-
-.diff-btn .best.muted {
-  color: var(--faint);
-  font-weight: 400;
-}
-
-.diff-easy.active { border-color: #66ff99; }
-.diff-normal.active { border-color: #4fc3f7; }
-.diff-hard.active { border-color: #ffb74d; }
-.diff-expert.active { border-color: #ff4d6d; }
-
-.diff-btn.active {
-  background: var(--panel-3);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-.game-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 10px;
-  padding: 7px 0;
-  border-top: 1px solid var(--border);
-}
-
-.game-label {
-  width: 92px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.key-bind {
-  min-width: 44px;
-  height: 36px;
-  padding: 0 10px;
-  border: 2px solid;
-  border-radius: 9px;
-  background: var(--bg);
-  color: var(--text);
-  font-weight: 800;
-  font-size: 15px;
-}
-
-.key-bind.listening {
-  animation: pulse 1s infinite;
-  background: var(--accent-soft);
-}
-
-.key-presets {
-  height: 32px;
-  padding: 0 8px;
-  border: 1px solid var(--border-2);
-  border-radius: 8px;
-  background: var(--panel);
-}
-
-.game-range {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  width: 200px;
-}
-
-.game-range output {
-  min-width: 56px;
-  font-variant-numeric: tabular-nums;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.game-check {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-right: 10px;
-  font-size: 12px;
-}
-
-.muted.small {
-  font-size: 11px;
-}
-
-.chart-info {
-  margin-top: 8px;
-  font-size: 12px;
-}
-
-.game-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.btn.big {
-  height: 44px;
-  padding: 0 28px;
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.game-card.results {
-  width: min(520px, 100%);
-  text-align: center;
-}
-
-.grade {
-  font-size: 84px;
-  font-weight: 900;
-  line-height: 1;
-  margin-bottom: 6px;
-  text-shadow: 0 0 30px currentColor;
-}
-
-.grade-SS { color: #ffe066; }
-.grade-S { color: #ffd54f; }
-.grade-A { color: #8dff7a; }
-.grade-B { color: #4fc3f7; }
-.grade-C { color: #c792ea; }
-.grade-D,
-.grade-F { color: #ff4d6d; }
-
-.new-best {
-  color: var(--accent-2);
-  font-weight: 700;
-}
-
-.result-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin: 14px 0;
-}
-
-.result-stats div,
-.result-counts div {
-  display: flex;
-  flex-direction: column;
-  padding: 8px;
-  border-radius: 10px;
-  background: var(--panel-2);
-}
-
-.result-stats span,
-.result-counts span {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.result-stats b {
-  font-size: 20px;
-  font-variant-numeric: tabular-nums;
-}
-
-.result-counts {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
-}
-
-.result-counts b {
-  font-size: 17px;
-}
-
-.result-counts span {
-  color: inherit;
 }
 
 /* -------------------------------------------------------- responsive */

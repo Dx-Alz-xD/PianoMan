@@ -2,7 +2,7 @@
 """
 Builds src/audio/data/sfz-instruments.json from public SFZ sample libraries.
 
-PianoMan streams its sampled instruments from the internet at runtime. The
+PIANO-BEATS streams its sampled instruments from the internet at runtime. The
 sample *files* are never bundled; this script only converts each library's
 SFZ mapping (which file covers which key / velocity range, tuning, volume,
 release samples, pedal noises, round robins) into a compact JSON table that
@@ -182,7 +182,7 @@ def convert_region(inst_id, op, control, sfz_dir, opts, lower_listing):
         lo = int(op.get("on_locc64", 0))
         kind = "pd" if lo >= 64 else "pu"  # pedal down / pedal up noise
     elif any(re.fullmatch(r"(lo|hi)cc\d+", k) and k not in ("locc64", "hicc64") for k in op):
-        return None  # e.g. Splendid's string resonance group (cc70); PianoMan models resonance itself
+        return None  # e.g. Splendid's string resonance group (cc70); PIANO-BEATS models resonance itself
     elif trigger == "release":
         kind = "r"
     elif trigger not in ("attack", "first", "legato"):

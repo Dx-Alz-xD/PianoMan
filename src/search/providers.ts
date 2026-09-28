@@ -300,7 +300,7 @@ const thesession: Provider = {
 
 const demos: Provider = {
   id: 'demos',
-  name: 'PianoMan demos',
+  name: 'PIANO-BEATS demos',
   description: 'Short public-domain pieces bundled with the app.',
   formats: 'MusicXML',
   online: false,

@@ -1,11 +1,11 @@
 {
-  "name": "pianoman",
-  "productName": "PianoMan",
+  "name": "piano-beats",
+  "productName": "PIANO-BEATS",
   "version": "1.0.0",
-  "description": "Desktop piano with internet-streamed sampled instruments, a full sound-design panel, a score autoplayer, sheet music viewer and clicker mode.",
+  "description": "PIANO-BEATS: a desktop piano (sampled instruments, sound design, autoplayer, sheet music, clicker) and a 4-key rhythm game that makes maps from YouTube, audio files, osu! beatmaps and piano scores.",
   "main": "electron/main.cjs",
   "author": {
-    "name": "PianoMan contributors"
+    "name": "PIANO-BEATS contributors"
   },
   "license": "MIT",
   "private": true,
@@ -24,6 +24,8 @@
     "instruments": "python3 scripts/build-instruments.py"
   },
   "devDependencies": {
+    "@breezystack/lamejs": "^1.2.7",
+    "@fontsource-variable/outfit": "^5.3.0",
     "@tonejs/midi": "^2.0.28",
     "@types/node": "^26.6.3",
     "abcjs": "^6.7.1",
@@ -42,9 +44,9 @@
     "url": "https://github.com/Dx-Alz-xD/PianoMan.git"
   },
   "build": {
-    "appId": "com.pianoman.app",
-    "productName": "PianoMan",
-    "copyright": "PianoMan contributors",
+    "appId": "com.pianobeats.app",
+    "productName": "PIANO-BEATS",
+    "copyright": "PIANO-BEATS contributors",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -77,6 +79,14 @@
         "ext": "abc",
         "name": "ABC tune",
         "role": "Viewer"
+      },
+      {
+        "ext": [
+          "osz",
+          "osu"
+        ],
+        "name": "osu! beatmap",
+        "role": "Viewer"
       }
     ],
     "win": {
@@ -108,8 +118,9 @@
       ],
       "category": "Audio",
       "icon": "build/icon.png",
-      "maintainer": "PianoMan contributors",
-      "synopsis": "Desktop piano with autoplayer, sheet music and clicker mode"
+      "maintainer": "PIANO-BEATS contributors",
+      "synopsis": "Desktop piano and 4K rhythm game",
+      "executableName": "piano-beats"
     }
   }
 }
